@@ -37,7 +37,7 @@ class DetectionValidator(BaseValidator):
 
     Examples:
         >>> from ultralytics.models.yolo.detect import DetectionValidator
-        >>> args = dict(model="yolo26n.pt", data="coco8.yaml")
+        >>> args = dict(model="yolo11n.pt", data="coco8.yaml")
         >>> validator = DetectionValidator(args=args)
         >>> validator()
     """
@@ -122,6 +122,10 @@ class DetectionValidator(BaseValidator):
             max_det=self.args.max_det,
             end2end=self.end2end,
             rotated=self.args.task == "obb",
+            weighted=getattr(self.args, "weighted", False),
+            cluster=getattr(self.args, "cluster", False),
+            sigma=getattr(self.args, "sigma", 0.1),
+            iou_type=getattr(self.args, "iou_type", "iou"),
         )
         return [{"bboxes": x[:, :4], "conf": x[:, 4], "cls": x[:, 5], "extra": x[:, 6:]} for x in outputs]
 
@@ -347,14 +351,14 @@ class DetectionValidator(BaseValidator):
             ni (int): Batch index.
             max_det (Optional[int]): Maximum number of detections to plot.
         """
-        if not preds:
-            return
+        # TODO: optimize this
         for i, pred in enumerate(preds):
             pred["batch_idx"] = torch.ones_like(pred["conf"]) * i  # add batch index to predictions
         keys = preds[0].keys()
         max_det = max_det or self.args.max_det
         batched_preds = {k: torch.cat([x[k][:max_det] for x in preds], dim=0) for k in keys}
-        batched_preds["bboxes"] = ops.xyxy2xywh(batched_preds["bboxes"])  # convert to xywh format
+        # TODO: fix this
+        batched_preds["bboxes"][:, :4] = ops.xyxy2xywh(batched_preds["bboxes"][:, :4])  # convert to xywh format
         plot_images(
             images=batch["img"],
             labels=batched_preds,
@@ -494,12 +498,6 @@ class DetectionValidator(BaseValidator):
                     # update mAP50-95 and mAP50
                     stats[f"metrics/mAP50({suffix[i][0]})"] = val.stats_as_dict["AP_50"]
                     stats[f"metrics/mAP50-95({suffix[i][0]})"] = val.stats_as_dict["AP_all"]
-                    # record mAP for small, medium, large objects as well
-                    stats["metrics/mAP_small(B)"] = val.stats_as_dict["AP_small"]
-                    stats["metrics/mAP_medium(B)"] = val.stats_as_dict["AP_medium"]
-                    stats["metrics/mAP_large(B)"] = val.stats_as_dict["AP_large"]
-                    # update fitness
-                    stats["fitness"] = 0.9 * val.stats_as_dict["AP_all"] + 0.1 * val.stats_as_dict["AP_50"]
 
                     if self.is_lvis:
                         stats[f"metrics/APr({suffix[i][0]})"] = val.stats_as_dict["APr"]

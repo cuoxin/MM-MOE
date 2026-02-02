@@ -482,8 +482,7 @@ class ViT(nn.Module):
             if self.use_act_checkpoint and self.training:
                 torch._dynamo.config.optimize_ddp = False
 
-    @staticmethod
-    def _init_weights(m: nn.Module) -> None:
+    def _init_weights(self, m: nn.Module) -> None:
         """Initialize the weights."""
         if isinstance(m, nn.Linear):
             nn.init.trunc_normal_(m.weight, std=0.02)

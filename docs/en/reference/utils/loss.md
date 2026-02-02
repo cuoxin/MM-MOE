@@ -27,19 +27,7 @@ keywords: Ultralytics, loss functions, Varifocal Loss, Focal Loss, Bbox Loss, Ro
 
 <br><br><hr><br>
 
-## ::: ultralytics.utils.loss.RLELoss
-
-<br><br><hr><br>
-
 ## ::: ultralytics.utils.loss.RotatedBboxLoss
-
-<br><br><hr><br>
-
-## ::: ultralytics.utils.loss.MultiChannelDiceLoss
-
-<br><br><hr><br>
-
-## ::: ultralytics.utils.loss.BCEDiceLoss
 
 <br><br><hr><br>
 
@@ -59,10 +47,6 @@ keywords: Ultralytics, loss functions, Varifocal Loss, Focal Loss, Bbox Loss, Ro
 
 <br><br><hr><br>
 
-## ::: ultralytics.utils.loss.PoseLoss26
-
-<br><br><hr><br>
-
 ## ::: ultralytics.utils.loss.v8ClassificationLoss
 
 <br><br><hr><br>
@@ -72,10 +56,6 @@ keywords: Ultralytics, loss functions, Varifocal Loss, Focal Loss, Bbox Loss, Ro
 <br><br><hr><br>
 
 ## ::: ultralytics.utils.loss.E2EDetectLoss
-
-<br><br><hr><br>
-
-## ::: ultralytics.utils.loss.E2ELoss
 
 <br><br><hr><br>
 

@@ -36,7 +36,7 @@ amp: True # (bool) Automatic Mixed Precision (AMP) training; True runs AMP capab
 fraction: 1.0 # (float) fraction of training dataset to use (1.0 = all)
 profile: False # (bool) profile ONNX/TensorRT speeds during training for loggers
 freeze: # (int | list, optional) freeze first N layers (int) or specific layer indices (list)
-multi_scale: 0.0 # (float) multi-scale range as a fraction of imgsz; sizes are rounded to stride multiples
+multi_scale: False # (bool) multiscale training by varying image size
 compile: False # (bool | str) enable torch.compile() backend='inductor'; True="default", False=off, or "default|reduce-overhead|max-autotune-no-cudagraphs"
 
 # Segmentation
@@ -56,7 +56,6 @@ max_det: 300 # (int) maximum number of detections per image
 half: False # (bool) use half precision (FP16) if supported
 dnn: False # (bool) use OpenCV DNN for ONNX inference
 plots: True # (bool) save plots and images during train/val
-end2end: # (bool, optional) whether to use end2end head(YOLO26, YOLOv10) for predict/val/export
 
 # Predict settings -----------------------------------------------------------------------------------------------------
 source: # (str, optional) path/dir/URL/stream for images or videos; e.g. 'ultralytics/assets' or '0' for webcam
@@ -65,9 +64,16 @@ stream_buffer: False # (bool) True buffers all frames; False keeps the most rece
 visualize: False # (bool) visualize model features (predict) or TP/FP/FN confusion (val)
 augment: False # (bool) apply test-time augmentation during prediction
 agnostic_nms: False # (bool) class-agnostic NMS
+weighted: False # (bool) weighted NMS
+cluster: False # (bool) cluster NMS (MoE optimized)
+sigma: 0.1 # (float) Gaussian sigma for Cluster-Weighted NMS
+iou_type: iou # (str) NMS IoU type (iou, diou, ciou)
 classes: # (int | list[int], optional) filter by class id(s), e.g. 0 or [0,2,3]
 retina_masks: False # (bool) use high-resolution segmentation masks (segment)
 embed: # (list[int], optional) return feature embeddings from given layer indices
+sparse_sahi: False # (bool) use Sparse SAHI inference
+slice_size: 640 # (int) slice size for SAHI
+overlap_ratio: 0.2 # (float) overlap ratio for SAHI slices
 
 # Visualize settings ---------------------------------------------------------------------------------------------------
 show: False # (bool) show images/videos in a window if supported
@@ -99,13 +105,13 @@ weight_decay: 0.0005 # (float) weight decay (L2 regularization)
 warmup_epochs: 3.0 # (float) warmup epochs (fractions allowed)
 warmup_momentum: 0.8 # (float) initial momentum during warmup
 warmup_bias_lr: 0.1 # (float) bias learning rate during warmup
+#dfl: 1.5 # (float) distribution focal loss gain
 box: 7.5 # (float) box loss gain
 cls: 0.5 # (float) classification loss gain
-dfl: 1.5 # (float) distribution focal loss gain
+dfl: 1.5 # (float) distribution focal loss
+moe: 1.5 # (float) moe loss gain
 pose: 12.0 # (float) pose loss gain (pose tasks)
 kobj: 1.0 # (float) keypoint objectness loss gain (pose tasks)
-rle: 1.0 # (float) rle loss gain (pose tasks)
-angle: 1.0 # (float) oriented angle loss gain (obb tasks)
 nbs: 64 # (int) nominal batch size used for loss normalization
 hsv_h: 0.015 # (float) HSV hue augmentation fraction
 hsv_s: 0.7 # (float) HSV saturation augmentation fraction

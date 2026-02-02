@@ -144,6 +144,7 @@ class TransformerEncoderLayer(nn.Module):
         memory_key_padding_mask: torch.Tensor = None,
         pos: torch.Tensor = None,
         query_pos: torch.Tensor = None,
+        # **kwargs,
     ) -> torch.Tensor:
         """Forward pass for pre-norm architecture.
 
@@ -159,6 +160,8 @@ class TransformerEncoderLayer(nn.Module):
             memory_key_padding_mask: Key padding mask for cross-attention
             pos: Positional encoding for memory
             query_pos: Positional encoding for query
+            attn_bias: Optional attention bias tensor
+            **kwargs: Additional keyword arguments
 
         Returns:
             Processed tensor
@@ -201,6 +204,7 @@ class TransformerEncoderLayer(nn.Module):
         memory_key_padding_mask: torch.Tensor = None,
         pos: torch.Tensor = None,
         query_pos: torch.Tensor = None,
+        # **kwds: Any,
     ) -> torch.Tensor:
         """Forward pass for the transformer encoder layer.
 
@@ -214,6 +218,8 @@ class TransformerEncoderLayer(nn.Module):
             memory_key_padding_mask: Key padding mask for cross-attention
             pos: Positional encoding for memory
             query_pos: Positional encoding for query
+            attn_bias: Optional attention bias tensor
+            **kwds: Additional keyword arguments
 
         Returns:
             Processed tensor after self-attention, cross-attention, and feedforward network

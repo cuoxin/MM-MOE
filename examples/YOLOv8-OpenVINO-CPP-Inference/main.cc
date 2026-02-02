@@ -36,7 +36,6 @@ int main(int argc, char **argv) {
 	// Display the image with the detections
 	cv::imshow("image", image);
 	cv::waitKey(0);
-	cv::destroyAllWindows();
 
 	return 0;
 }

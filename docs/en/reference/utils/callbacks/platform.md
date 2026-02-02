@@ -11,43 +11,11 @@ keywords: platform callbacks, training callbacks, console logging, YOLO11 traini
 
 <br>
 
-## ::: ultralytics.utils.callbacks.platform.slugify
-
-<br><br><hr><br>
-
-## ::: ultralytics.utils.callbacks.platform.resolve_platform_uri
-
-<br><br><hr><br>
-
-## ::: ultralytics.utils.callbacks.platform._interp_plot
-
-<br><br><hr><br>
-
-## ::: ultralytics.utils.callbacks.platform._send
-
-<br><br><hr><br>
-
-## ::: ultralytics.utils.callbacks.platform._send_async
-
-<br><br><hr><br>
-
-## ::: ultralytics.utils.callbacks.platform._upload_model
-
-<br><br><hr><br>
-
-## ::: ultralytics.utils.callbacks.platform._upload_model_async
-
-<br><br><hr><br>
-
-## ::: ultralytics.utils.callbacks.platform._get_environment_info
-
-<br><br><hr><br>
-
-## ::: ultralytics.utils.callbacks.platform._get_project_name
-
-<br><br><hr><br>
-
 ## ::: ultralytics.utils.callbacks.platform.on_pretrain_routine_start
+
+<br><br><hr><br>
+
+## ::: ultralytics.utils.callbacks.platform.on_pretrain_routine_end
 
 <br><br><hr><br>
 
@@ -60,5 +28,21 @@ keywords: platform callbacks, training callbacks, console logging, YOLO11 traini
 <br><br><hr><br>
 
 ## ::: ultralytics.utils.callbacks.platform.on_train_end
+
+<br><br><hr><br>
+
+## ::: ultralytics.utils.callbacks.platform.on_train_start
+
+<br><br><hr><br>
+
+## ::: ultralytics.utils.callbacks.platform.on_val_start
+
+<br><br><hr><br>
+
+## ::: ultralytics.utils.callbacks.platform.on_predict_start
+
+<br><br><hr><br>
+
+## ::: ultralytics.utils.callbacks.platform.on_export_start
 
 <br><br>
