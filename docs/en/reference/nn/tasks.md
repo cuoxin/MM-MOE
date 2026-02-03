@@ -5,9 +5,9 @@ keywords: Ultralytics, YOLO, nn tasks, DetectionModel, PoseModel, RTDETRDetectio
 
 # Reference for `ultralytics/nn/tasks.py`
 
-!!! success "Improvements"
+!!! note
 
-    This page is sourced from [https://github.com/ultralytics/ultralytics/blob/main/ultralytics/nn/tasks.py](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/nn/tasks.py). Have an improvement or example to add? Open a [Pull Request](https://docs.ultralytics.com/help/contributing/) — thank you! 🙏
+    This file is available at [https://github.com/ultralytics/ultralytics/blob/main/ultralytics/nn/tasks.py](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/nn/tasks.py). If you spot a problem please help fix it by [contributing](https://docs.ultralytics.com/help/contributing/) a [Pull Request](https://github.com/ultralytics/ultralytics/edit/main/ultralytics/nn/tasks.py) 🛠️. Thank you 🙏!
 
 <br>
 
@@ -43,14 +43,6 @@ keywords: Ultralytics, YOLO, nn tasks, DetectionModel, PoseModel, RTDETRDetectio
 
 <br><br><hr><br>
 
-## ::: ultralytics.nn.tasks.YOLOEModel
-
-<br><br><hr><br>
-
-## ::: ultralytics.nn.tasks.YOLOESegModel
-
-<br><br><hr><br>
-
 ## ::: ultralytics.nn.tasks.Ensemble
 
 <br><br><hr><br>
@@ -71,7 +63,11 @@ keywords: Ultralytics, YOLO, nn tasks, DetectionModel, PoseModel, RTDETRDetectio
 
 <br><br><hr><br>
 
-## ::: ultralytics.nn.tasks.load_checkpoint
+## ::: ultralytics.nn.tasks.attempt_load_weights
+
+<br><br><hr><br>
+
+## ::: ultralytics.nn.tasks.attempt_load_one_weight
 
 <br><br><hr><br>
 

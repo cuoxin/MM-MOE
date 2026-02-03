@@ -39,7 +39,7 @@ PaddlePaddle models offer a range of key features that contribute to their flexi
 
 - **Dynamic-to-Static Graph**: PaddlePaddle supports [dynamic-to-static compilation](https://www.paddlepaddle.org.cn/documentation/docs/en/guides/jit/index_en.html), where models can be translated into a static computational graph. This enables optimizations that reduce runtime overhead and boost inference performance.
 
-- **Operator Fusion**: PaddlePaddle, like [TensorRT](../integrations/tensorrt.md), uses [operator fusion](https://developer.nvidia.com/gtc/2020/video/s21436-vid) to streamline computation and reduce overhead. The framework minimizes memory transfers and computational steps by merging compatible operations, resulting in faster inference.
+- **Operator Fusion**: PaddlePaddle, like TensorRT, uses [operator fusion](https://developer.nvidia.com/gtc/2020/video/s21436-vid) to streamline computation and reduce overhead. The framework minimizes memory transfers and computational steps by merging compatible operations, resulting in faster inference.
 
 - **Quantization**: PaddlePaddle supports [quantization techniques](https://www.paddlepaddle.org.cn/documentation/docs/en/api/paddle/quantization/PTQ_en.html), including post-training quantization and quantization-aware training. These techniques allow for the use of lower-precision data representations, effectively boosting performance and reducing model size.
 
@@ -55,7 +55,7 @@ PaddlePaddle provides a range of options, each offering a distinct balance of ea
 
 - **Paddle Lite**: Paddle Lite is designed for deployment on mobile and embedded devices where resources are limited. It optimizes models for smaller sizes and faster inference on ARM CPUs, GPUs, and other specialized hardware.
 
-- **Paddle.js**: Paddle.js enables you to deploy PaddlePaddle models directly within web browsers. Paddle.js can either load a pretrained model or transform a model from [paddle-hub](https://github.com/PaddlePaddle/PaddleHub) with model transforming tools provided by Paddle.js. It can run in browsers that support WebGL/WebGPU/WebAssembly.
+- **Paddle.js**: Paddle.js enables you to deploy PaddlePaddle models directly within web browsers. Paddle.js can either load a pre-trained model or transform a model from [paddle-hub](https://github.com/PaddlePaddle/PaddleHub) with model transforming tools provided by Paddle.js. It can run in browsers that support WebGL/WebGPU/WebAssembly.
 
 ## Export to PaddlePaddle: Converting Your YOLO11 Model
 
@@ -78,7 +78,7 @@ For detailed instructions and best practices related to the installation process
 
 ### Usage
 
-All [Ultralytics YOLO11 models](../models/yolo11.md) support export, and you can [browse the full list of export formats and options](../modes/export.md) to find the best fit for your deployment needs.
+Before diving into the usage instructions, it's important to note that while all [Ultralytics YOLO11 models](../models/index.md) are available for exporting, you can ensure that the model you select supports export functionality [here](../modes/export.md).
 
 !!! example "Usage"
 
@@ -104,7 +104,7 @@ All [Ultralytics YOLO11 models](../models/yolo11.md) support export, and you can
 
         ```bash
         # Export a YOLO11n PyTorch model to PaddlePaddle format
-        yolo export model=yolo11n.pt format=paddle # creates '/yolo11n_paddle_model'
+        yolo export model=yolo11n.pt format=paddle  # creates '/yolo11n_paddle_model'
 
         # Run inference with the exported model
         yolo predict model='./yolo11n_paddle_model' source='https://ultralytics.com/images/bus.jpg'
@@ -112,12 +112,11 @@ All [Ultralytics YOLO11 models](../models/yolo11.md) support export, and you can
 
 ### Export Arguments
 
-| Argument | Type             | Default    | Description                                                                                                                             |
-| -------- | ---------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `format` | `str`            | `'paddle'` | Target format for the exported model, defining compatibility with various deployment environments.                                      |
-| `imgsz`  | `int` or `tuple` | `640`      | Desired image size for the model input. Can be an integer for square images or a tuple `(height, width)` for specific dimensions.       |
-| `batch`  | `int`            | `1`        | Specifies export model batch inference size or the max number of images the exported model will process concurrently in `predict` mode. |
-| `device` | `str`            | `None`     | Specifies the device for exporting: CPU (`device=cpu`), MPS for Apple silicon (`device=mps`).                                           |
+| Argument | Type             | Default  | Description                                                                                                                             |
+| -------- | ---------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `format` | `str`            | `paddle` | Target format for the exported model, defining compatibility with various deployment environments.                                      |
+| `imgsz`  | `int` or `tuple` | `640`    | Desired image size for the model input. Can be an integer for square images or a tuple `(height, width)` for specific dimensions.       |
+| `batch`  | `int`            | `1`      | Specifies export model batch inference size or the max number of images the exported model will process concurrently in `predict` mode. |
 
 For more details about the export process, visit the [Ultralytics documentation page on exporting](../modes/export.md).
 
@@ -137,7 +136,7 @@ However, for in-depth instructions on deploying your PaddlePaddle models in vari
 
 In this guide, we explored the process of exporting Ultralytics YOLO11 models to the PaddlePaddle format. By following these steps, you can leverage PaddlePaddle's strengths in diverse deployment scenarios, optimizing your models for different hardware and software environments.
 
-For further details on usage, visit the [PaddlePaddle official documentation](https://www.paddlepaddle.org.cn/documentation/docs/en/guides/index_en.html).
+For further details on usage, visit the [PaddlePaddle official documentation](https://www.paddlepaddle.org.cn/documentation/docs/en/guides/index_en.html)
 
 Want to explore more ways to integrate your Ultralytics YOLO11 models? Our [integration guide page](index.md) explores various options, equipping you with valuable resources and insights.
 
@@ -145,7 +144,7 @@ Want to explore more ways to integrate your Ultralytics YOLO11 models? Our [inte
 
 ### How do I export Ultralytics YOLO11 models to PaddlePaddle format?
 
-Exporting Ultralytics YOLO11 models to PaddlePaddle format is straightforward. You can use the `export` method of the YOLO class to perform the conversion. Here is an example using Python:
+Exporting Ultralytics YOLO11 models to PaddlePaddle format is straightforward. You can use the `export` method of the YOLO class to perform this exportation. Here is an example using Python:
 
 !!! example "Usage"
 
@@ -171,7 +170,7 @@ Exporting Ultralytics YOLO11 models to PaddlePaddle format is straightforward. Y
 
         ```bash
         # Export a YOLO11n PyTorch model to PaddlePaddle format
-        yolo export model=yolo11n.pt format=paddle # creates '/yolo11n_paddle_model'
+        yolo export model=yolo11n.pt format=paddle  # creates '/yolo11n_paddle_model'
 
         # Run inference with the exported model
         yolo predict model='./yolo11n_paddle_model' source='https://ultralytics.com/images/bus.jpg'
@@ -188,7 +187,7 @@ PaddlePaddle offers several key advantages for model deployment:
 - **Operator Fusion**: By merging compatible operations, it reduces computational overhead.
 - **Quantization Techniques**: Supports both post-training and quantization-aware training, enabling lower-[precision](https://www.ultralytics.com/glossary/precision) data representations for improved performance.
 
-You can achieve enhanced results by exporting your Ultralytics YOLO11 models to PaddlePaddle, ensuring flexibility and high performance across various applications and hardware platforms. Explore PaddlePaddle's key features and capabilities in the [official PaddlePaddle documentation](https://www.paddlepaddle.org.cn/en)..
+You can achieve enhanced results by exporting your Ultralytics YOLO11 models to PaddlePaddle, ensuring flexibility and high performance across various applications and hardware platforms. Learn more about PaddlePaddle's features [here](https://www.paddlepaddle.org.cn/en).
 
 ### Why should I choose PaddlePaddle for deploying my YOLO11 models?
 

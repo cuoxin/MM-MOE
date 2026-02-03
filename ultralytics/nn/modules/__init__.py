@@ -1,20 +1,20 @@
 # Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """
-Ultralytics neural network modules.
+Ultralytics modules.
 
-This module provides access to various neural network components used in Ultralytics models, including convolution
-blocks, attention mechanisms, transformer components, and detection/segmentation heads.
+Example:
+    Visualize a module with Netron.
+    ```python
+    from ultralytics.nn.modules import *
+    import torch
+    import os
 
-Examples:
-    Visualize a module with Netron
-    >>> from ultralytics.nn.modules import Conv
-    >>> import torch
-    >>> import subprocess
-    >>> x = torch.ones(1, 128, 40, 40)
-    >>> m = Conv(128, 128)
-    >>> f = f"{m._get_name()}.onnx"
-    >>> torch.onnx.export(m, x, f)
-    >>> subprocess.run(f"onnxslim {f} {f} && open {f}", shell=True, check=True)  # pip install onnxslim
+    x = torch.ones(1, 128, 40, 40)
+    m = Conv(128, 128)
+    f = f"{m._get_name()}.onnx"
+    torch.onnx.export(m, x, f)
+    os.system(f"onnxslim {f} {f} && open {f}")  # pip install onnxslim
+    ```
 """
 
 from .block import (
@@ -23,22 +23,19 @@ from .block import (
     C2PSA,
     C3,
     C3TR,
-    C3k2_Dynamic,
-    C3k2UltraPro,
-    C3k2MA,
-    C3k2MA_Lite,
     CIB,
     DFL,
-    ELAN1,
-    C2f_LSKA,
-    WaveC2f,
-    DyC2f,
-    A3C2f,
-    PSA,
+    ELAN1,ELAN_t,ELAN_H,ELAN,SPPCSPCSIM,SPPCSPC,MP_2,MP_1,YOLOv4_BottleneckCSP,YOLOv4_Bottleneck,
+    PSA,CrossAttentionShared, CrossMLCA , TensorSelector,CrossMLCAv2,DeepDiverseBranchBlock,RecursionDiverseBranchBlock,
+    C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,C3k_RDBB,C2f_RDBB,C3k2_RDBB,A2C2f,
+    ConvNormLayer, BasicBlock, BottleNeck,Blocks,
+    GPT,Add2,Add,CrossTransformerFusion,
+    MANet, HyperComputeModule, MANet_FasterBlock, MANet_FasterCGLU, MANet_Star,
+    CrossC2f ,  CrossC3k2,
+    CBH , ES_Bottleneck, DWConvblock,ADD,
     SPP,
     SPPELAN,
     SPPF,
-    A2C2f,
     AConv,
     ADown,
     Attention,
@@ -59,7 +56,6 @@ from .block import (
     HGBlock,
     HGStem,
     ImagePoolingAttn,
-    MaxSigmoidAttnBlock,
     Proto,
     RepC3,
     RepNCSPELAN4,
@@ -82,21 +78,14 @@ from .conv import (
     Index,
     LightConv,
     RepConv,
-    SpatialAttention,
+    SpatialAttention,Silence,SilenceChannel,ChannelToNumber,NumberToChannel,ZeroConv2d,ZeroConv1d,
+    TransformerFusionBlock, NiNfusion,
+
 )
-from .head import (
-    OBB,
-    Classify,
-    Detect,
-    LRPCHead,
-    Pose,
-    RTDETRDecoder,
-    Segment,
-    WorldDetect,
-    YOLOEDetect,
-    YOLOESegment,
-    v10Detect,
-)
+
+from .rep_block import  DiverseBranchBlock, WideDiverseBranchBlock, DeepDiverseBranchBlock,FeaturePyramidAggregationAttention,SilenceLayer
+
+from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect, DetectDeepDBB, DetectWDBB,DetectV8,DetectAux,Detect_LSCD, Segment_LSCD, Pose_LSCD, OBB_LSCD
 from .transformer import (
     AIFI,
     MLP,
@@ -109,97 +98,87 @@ from .transformer import (
     TransformerEncoderLayer,
     TransformerLayer,
 )
-from .moe import OptimizedMOE, OptimizedMOEImproved, MOE, ES_MOE, EfficientSpatialRouterMoE, ModularRouterExpertMoE
 
 __all__ = (
-    "AIFI",
-    "C1",
-    "C2",
-    "C2PSA",
-    "C3",
-    "C3TR",
-    "C3k2_Dynamic",
-    "C3k2UltraPro",
-    "C3k2MA",
-    "C3k2MA_Lite",
-    "CBAM",
-    "CIB",
-    "DFL",
-    "ELAN1",
-    "MLP",
-    "OBB",
-    "PSA",
-    "SPP",
-    "SPPELAN",
-    "SPPF",
-    "A2C2f",
-    "AConv",
-    "ADown",
-    "Attention",
-    "BNContrastiveHead",
-    "Bottleneck",
-    "BottleneckCSP",
-    "C2f",
-    "C2fAttn",
-    "C2fCIB",
-    "C2fPSA",
-    "C2f_LSKA",
-    "WaveC2f",
-    "DyC2f",
-    "A3C2f",
-    "C3Ghost",
-    "C3k2",
-    "C3x",
-    "CBFuse",
-    "CBLinear",
-    "ChannelAttention",
-    "Classify",
-    "Concat",
-    "ContrastiveHead",
     "Conv",
     "Conv2",
-    "ConvTranspose",
+    "LightConv",
+    "RepConv",
     "DWConv",
     "DWConvTranspose2d",
-    "DeformableTransformerDecoder",
-    "DeformableTransformerDecoderLayer",
-    "Detect",
+    "ConvTranspose",
     "Focus",
-    "GhostBottleneck",
     "GhostConv",
+    "ChannelAttention",
+    "SpatialAttention",
+    "CBAM",
+    "Concat",
+    "TransformerLayer",
+    "TransformerBlock",
+    "MLPBlock",
+    "LayerNorm2d",
+    "DFL",
     "HGBlock",
     "HGStem",
-    "ImagePoolingAttn",
-    "Index",
-    "LRPCHead",
-    "LayerNorm2d",
-    "LightConv",
-    "MLPBlock",
-    "MSDeformAttn",
-    "MaxSigmoidAttnBlock",
-    "Pose",
-    "Proto",
-    "RTDETRDecoder",
-    "RepC3",
-    "RepConv",
-    "RepNCSPELAN4",
-    "RepVGGDW",
-    "ResNetLayer",
+    "SPP",
+    "SPPF",
+    "C1",
+    "C2",
+    "C3",
+    "C2f",
+    "C3k2",
     "SCDown",
+    "C2fPSA",
+    "C2PSA",
+    "C2fAttn",
+    "C3x",
+    "C3TR",
+    "C3Ghost",
+    "GhostBottleneck",
+    "Bottleneck",
+    "BottleneckCSP",
+    "Proto",
+    "Detect",'DetectAux',
     "Segment",
-    "SpatialAttention",
-    "TorchVision",
-    "TransformerBlock",
+    "Pose",
+    "Classify",
     "TransformerEncoderLayer",
-    "TransformerLayer",
+    "RepC3",
+    "RTDETRDecoder",
+    "AIFI",
+    "DeformableTransformerDecoder",
+    "DeformableTransformerDecoderLayer",
+    "MSDeformAttn",
+    "MLP",
+    "ResNetLayer",
+    "OBB",
     "WorldDetect",
-    "YOLOEDetect",
-    "YOLOESegment",
     "v10Detect",
-    "OptimizedMOE",
-    "OptimizedMOEImproved",
-    "MOE",
-    "EfficientSpatialRouterMoE",
-    "ModularRouterExpertMoE",
-    "ES_MOE",
+    "ImagePoolingAttn",
+    "ContrastiveHead",
+    "BNContrastiveHead",
+    "RepNCSPELAN4",
+    "ADown",
+    "SPPELAN",
+    "CBFuse",
+    "CBLinear",
+    "AConv",
+    "ELAN1","ELAN","ELAN_H",'MP_1','MP_2','ELAN_t','SPPCSPCSIM','SPPCSPC',
+    "RepVGGDW",
+    "CIB",
+    "C2fCIB",
+    "Attention",
+    "PSA",
+    "TorchVision",
+    "Index", 'Silence','SilenceChannel','ChannelToNumber','NumberToChannel', 'ZeroConv1d','ZeroConv2d',
+    'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention','SilenceLayer',
+    "CrossAttentionShared","CrossMLCA","TensorSelector","CrossMLCAv2",'YOLOv4_BottleneckCSP','YOLOv4_Bottleneck',
+    'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention',
+    "C3k2_DeepDBB","C3k2_DBB","C3k2_WDBB",'C2f_DeepDBB','C2f_WDBB','C2f_DBB','C3k_RDBB','C2f_RDBB','C3k2_RDBB','A2C2f',
+    'ConvNormLayer', 'BasicBlock', 'BottleNeck', 'Blocks',
+    "CrossC2f", "CrossC3k2",
+    "CBH","ES_Bottleneck","DWConvblock","ADD",
+    'MANet', 'HyperComputeModule', 'MANet_FasterBlock', 'MANet_FasterCGLU', 'MANet_Star',
+
+    "GPT","Add2","Add","CrossTransformerFusion", 'TransformerFusionBlock','NiNfusion',
 )

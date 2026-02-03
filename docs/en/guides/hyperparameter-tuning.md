@@ -1,6 +1,6 @@
 ---
 comments: true
-description: Master hyperparameter tuning for Ultralytics YOLO to optimize model performance with our comprehensive guide. Elevate your machine learning models today!
+description: Master hyperparameter tuning for Ultralytics YOLO to optimize model performance with our comprehensive guide. Elevate your machine learning models today!.
 keywords: Ultralytics YOLO, hyperparameter tuning, machine learning, model optimization, genetic algorithms, learning rate, batch size, epochs
 ---
 
@@ -8,7 +8,7 @@ keywords: Ultralytics YOLO, hyperparameter tuning, machine learning, model optim
 
 ## Introduction
 
-Hyperparameter tuning is not just a one-time setup but an iterative process aimed at optimizing the [machine learning](https://www.ultralytics.com/glossary/machine-learning-ml) model's performance metrics, such as accuracy, precision, and recall. In the context of Ultralytics YOLO, these hyperparameters could range from learning rate to architectural details, such as the number of layers or types of activation functions used.
+Hyperparameter tuning is not just a one-time set-up but an iterative process aimed at optimizing the [machine learning](https://www.ultralytics.com/glossary/machine-learning-ml) model's performance metrics, such as accuracy, precision, and recall. In the context of Ultralytics YOLO, these hyperparameters could range from learning rate to architectural details, such as the number of layers or types of activation functions used.
 
 <p align="center">
   <br>
@@ -38,7 +38,7 @@ For a full list of augmentation hyperparameters used in YOLO11 please refer to t
 
 ### Genetic Evolution and Mutation
 
-Ultralytics YOLO uses [genetic algorithms](https://en.wikipedia.org/wiki/Genetic_algorithm) to optimize hyperparameters. Genetic algorithms are inspired by the mechanism of natural selection and genetics.
+Ultralytics YOLO uses genetic algorithms to optimize hyperparameters. Genetic algorithms are inspired by the mechanism of natural selection and genetics.
 
 - **Mutation**: In the context of Ultralytics YOLO, mutation helps in locally searching the hyperparameter space by applying small, random changes to existing hyperparameters, producing new candidates for evaluation.
 - **Crossover**: Although crossover is a popular genetic algorithm technique, it is not currently used in Ultralytics YOLO for hyperparameter tuning. The focus is mainly on mutation for generating new hyperparameter sets.
@@ -58,23 +58,23 @@ Start with a reasonable set of initial hyperparameters. This could either be the
 
 ### Mutate Hyperparameters
 
-Use the `_mutate` method to produce a new set of hyperparameters based on the existing set. The [Tuner class](https://docs.ultralytics.com/reference/engine/tuner/) handles this process automatically.
+Use the `_mutate` method to produce a new set of hyperparameters based on the existing set.
 
 ### Train Model
 
-Training is performed using the mutated set of hyperparameters. The training performance is then assessed using your chosen metrics.
+Training is performed using the mutated set of hyperparameters. The training performance is then assessed.
 
 ### Evaluate Model
 
-Use metrics like AP50, F1-score, or custom metrics to evaluate the model's performance. The [evaluation process](https://docs.ultralytics.com/modes/val/) helps determine if the current hyperparameters are better than previous ones.
+Use metrics like AP50, F1-score, or custom metrics to evaluate the model's performance.
 
 ### Log Results
 
-It's crucial to log both the performance metrics and the corresponding hyperparameters for future reference. Ultralytics YOLO automatically saves these results in CSV format.
+It's crucial to log both the performance metrics and the corresponding hyperparameters for future reference.
 
 ### Repeat
 
-The process is repeated until either the set number of iterations is reached or the performance metric is satisfactory. Each iteration builds upon the knowledge gained from previous runs.
+The process is repeated until either the set number of iterations is reached or the performance metric is satisfactory.
 
 ## Default Search Space Description
 
@@ -108,10 +108,6 @@ The following table lists the default search space parameters for hyperparameter
 
 Here's how to define a search space and use the `model.tune()` method to utilize the `Tuner` class for hyperparameter tuning of YOLO11n on COCO8 for 30 epochs with an AdamW optimizer and skipping plotting, checkpointing and validation other than on final epoch for faster Tuning.
 
-!!! warning
-
-    This example is for **demonstration** only. Hyperparameters derived from short or small-scale tuning runs are rarely optimal for real-world training. In practice, tuning should be performed under settings similar to full training — including comparable datasets, epochs, and augmentations — to ensure reliable and transferable results. Quick tuning may bias parameters toward faster convergence or short-term validation gains that do not generalize.
-
 !!! example
 
     === "Python"
@@ -141,38 +137,13 @@ Here's how to define a search space and use the `model.tune()` method to utilize
         )
         ```
 
-## Resuming an Interrupted Hyperparameter Tuning Session
-
-You can resume an interrupted hyperparameter tuning session by passing `resume=True`. You can optionally pass the directory `name` used under `runs/{task}` to resume. Otherwise, it would resume the last interrupted session. You also need to provide all the previous training arguments including `data`, `epochs`, `iterations` and `space`.
-
-!!! example "Using `resume=True` with `model.tune()`"
-
-    ```python
-    from ultralytics import YOLO
-
-    # Define a YOLO model
-    model = YOLO("yolo11n.pt")
-
-    # Define search space
-    search_space = {
-        "lr0": (1e-5, 1e-1),
-        "degrees": (0.0, 45.0),
-    }
-
-    # Resume previous run
-    results = model.tune(data="coco8.yaml", epochs=50, iterations=300, space=search_space, resume=True)
-
-    # Resume tuning run with name 'tune_exp'
-    results = model.tune(data="coco8.yaml", epochs=50, iterations=300, space=search_space, name="tune_exp", resume=True)
-    ```
-
 ## Results
 
 After you've successfully completed the hyperparameter tuning process, you will obtain several files and directories that encapsulate the results of the tuning. The following describes each:
 
 ### File Structure
 
-Here's what the directory structure of the results will look like. Training directories like `train1/` contain individual tuning iterations, i.e., one model trained with one set of hyperparameters. The `tune/` directory contains tuning results from all the individual model trainings:
+Here's what the directory structure of the results will look like. Training directories like `train1/` contain individual tuning iterations, i.e. one model trained with one set of hyperparameters. The `tune/` directory contains tuning results from all the individual model trainings:
 
 ```plaintext
 runs/
@@ -287,7 +258,7 @@ The hyperparameter tuning process in Ultralytics YOLO is simplified yet powerful
 2. [YOLOv5 Hyperparameter Evolution Guide](../yolov5/tutorials/hyperparameter_evolution.md)
 3. [Efficient Hyperparameter Tuning with Ray Tune and YOLO11](../integrations/ray-tune.md)
 
-For deeper insights, you can explore the [`Tuner` class](https://docs.ultralytics.com/reference/engine/tuner/) source code and accompanying documentation. Should you have any questions, feature requests, or need further assistance, feel free to reach out to us on [GitHub](https://github.com/ultralytics/ultralytics/issues/new/choose) or [Discord](https://discord.com/invite/ultralytics).
+For deeper insights, you can explore the `Tuner` class source code and accompanying documentation. Should you have any questions, feature requests, or need further assistance, feel free to reach out to us on [GitHub](https://github.com/ultralytics/ultralytics/issues/new/choose) or [Discord](https://discord.com/invite/ultralytics).
 
 ## FAQ
 
@@ -337,8 +308,8 @@ When evaluating model performance during hyperparameter tuning in YOLO, you can 
 
 These metrics help you understand different aspects of your model's performance. Refer to the [Ultralytics YOLO performance metrics](../guides/yolo-performance-metrics.md) guide for a comprehensive overview.
 
-### Can I use Ray Tune for advanced hyperparameter optimization with YOLO11?
+### Can I use Ultralytics HUB for hyperparameter tuning of YOLO models?
 
-Yes, Ultralytics YOLO11 integrates with [Ray Tune](https://docs.ray.io/en/latest/tune/index.html) for advanced hyperparameter optimization. Ray Tune offers sophisticated search algorithms like Bayesian Optimization and Hyperband, along with parallel execution capabilities to speed up the tuning process.
+Yes, you can use Ultralytics HUB for hyperparameter tuning of YOLO models. The HUB offers a no-code platform to easily upload datasets, train models, and perform hyperparameter tuning efficiently. It provides real-time tracking and visualization of tuning progress and results.
 
-To use Ray Tune with YOLO11, simply set the `use_ray=True` parameter in your `model.tune()` method call. For more details and examples, check out the [Ray Tune integration guide](../integrations/ray-tune.md).
+Explore more about using Ultralytics HUB for hyperparameter tuning in the [Ultralytics HUB Cloud Training](../hub/cloud-training.md) documentation.

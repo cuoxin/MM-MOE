@@ -30,16 +30,12 @@ Usage - formats:
                               yolo11n_ncnn_model         # NCNN
                               yolo11n_imx_model          # Sony IMX
                               yolo11n_rknn_model         # Rockchip RKNN
-                              yolo11n.pte                # PyTorch Executorch
 """
-
-from __future__ import annotations
 
 import platform
 import re
 import threading
 from pathlib import Path
-from typing import Any
 
 import cv2
 import numpy as np
@@ -47,16 +43,16 @@ import torch
 
 from ultralytics.cfg import get_cfg, get_save_dir
 from ultralytics.data import load_inference_source
-from ultralytics.data.augment import LetterBox
+from ultralytics.data.augment import LetterBox, classify_transforms
 from ultralytics.nn.autobackend import AutoBackend
 from ultralytics.utils import DEFAULT_CFG, LOGGER, MACOS, WINDOWS, callbacks, colorstr, ops
 from ultralytics.utils.checks import check_imgsz, check_imshow
 from ultralytics.utils.files import increment_path
-from ultralytics.utils.torch_utils import attempt_compile, select_device, smart_inference_mode
-
+from ultralytics.utils.torch_utils import select_device, smart_inference_mode
+import os
 STREAM_WARNING = """
-Inference results will accumulate in RAM unless `stream=True` is passed, which can cause out-of-memory errors for large
-sources or long-running streams and videos. See https://docs.ultralytics.com/modes/predict/ for help.
+WARNING ⚠️ inference results will accumulate in RAM unless `stream=True` is passed, causing potential out-of-memory
+errors for large sources or long-running streams and videos. See https://docs.ultralytics.com/modes/predict/ for help.
 
 Example:
     results = model(source=..., stream=True)  # generator of Results objects
@@ -68,58 +64,29 @@ Example:
 
 
 class BasePredictor:
-    """A base class for creating predictors.
+    """
+    BasePredictor.
 
-    This class provides the foundation for prediction functionality, handling model setup, inference, and result
-    processing across various input sources.
+    A base class for creating predictors.
 
     Attributes:
         args (SimpleNamespace): Configuration for the predictor.
         save_dir (Path): Directory to save results.
         done_warmup (bool): Whether the predictor has finished setup.
-        model (torch.nn.Module): Model used for prediction.
+        model (nn.Module): Model used for prediction.
         data (dict): Data configuration.
         device (torch.device): Device used for prediction.
         dataset (Dataset): Dataset used for prediction.
-        vid_writer (dict[str, cv2.VideoWriter]): Dictionary of {save_path: video_writer} for saving video output.
-        plotted_img (np.ndarray): Last plotted image.
-        source_type (SimpleNamespace): Type of input source.
-        seen (int): Number of images processed.
-        windows (list[str]): List of window names for visualization.
-        batch (tuple): Current batch data.
-        results (list[Any]): Current batch results.
-        transforms (callable): Image transforms for classification.
-        callbacks (dict[str, list[callable]]): Callback functions for different events.
-        txt_path (Path): Path to save text results.
-        _lock (threading.Lock): Lock for thread-safe inference.
-
-    Methods:
-        preprocess: Prepare input image before inference.
-        inference: Run inference on a given image.
-        postprocess: Process raw predictions into structured results.
-        predict_cli: Run prediction for command line interface.
-        setup_source: Set up input source and inference mode.
-        stream_inference: Stream inference on input source.
-        setup_model: Initialize and configure the model.
-        write_results: Write inference results to files.
-        save_predicted_images: Save prediction visualizations.
-        show: Display results in a window.
-        run_callbacks: Execute registered callbacks for an event.
-        add_callback: Register a new callback function.
+        vid_writer (dict): Dictionary of {save_path: video_writer, ...} writer for saving video output.
     """
 
-    def __init__(
-        self,
-        cfg=DEFAULT_CFG,
-        overrides: dict[str, Any] | None = None,
-        _callbacks: dict[str, list[callable]] | None = None,
-    ):
-        """Initialize the BasePredictor class.
+    def __init__(self, cfg=DEFAULT_CFG, overrides=None, _callbacks=None):
+        """
+        Initializes the BasePredictor class.
 
         Args:
-            cfg (str | dict): Path to a configuration file or a configuration dictionary.
-            overrides (dict, optional): Configuration overrides.
-            _callbacks (dict, optional): Dictionary of callback functions.
+            cfg (str, optional): Path to a configuration file. Defaults to DEFAULT_CFG.
+            overrides (dict, optional): Configuration overrides. Defaults to None.
         """
         self.args = get_cfg(cfg, overrides)
         self.save_dir = get_save_dir(self.args)
@@ -147,33 +114,75 @@ class BasePredictor:
         self.txt_path = None
         self._lock = threading.Lock()  # for automatic thread-safe inference
         callbacks.add_integration_callbacks(self)
+        self.channels = self.args.channels
 
-    def preprocess(self, im: torch.Tensor | list[np.ndarray]) -> torch.Tensor:
-        """Prepare input image before inference.
+    # def preprocess(self, im):
+    #     """
+    #     Prepares input image before inference.
+    #
+    #     Args:
+    #         im (torch.Tensor | List(np.ndarray)): BCHW for tensor, [(HWC) x B] for list.
+    #     """
+    #     not_tensor = not isinstance(im, torch.Tensor)
+    #     if not_tensor:
+    #         im = np.stack(self.pre_transform(im))
+    #         im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
+    #         im = np.ascontiguousarray(im)  # contiguous
+    #         im = torch.from_numpy(im)
+    #
+    #     im = im.to(self.device)
+    #     im = im.half() if self.model.fp16 else im.float()  # uint8 to fp16/32
+    #     if not_tensor:
+    #         im /= 255  # 0 - 255 to 0.0 - 1.0
+    #     return im
+    def preprocess(self, im):
+        """Prepares input image before inference.
 
         Args:
-            im (torch.Tensor | list[np.ndarray]): Images of shape (N, 3, H, W) for tensor, [(H, W, 3) x N] for list.
-
-        Returns:
-            (torch.Tensor): Preprocessed image tensor of shape (N, 3, H, W).
+            im (torch.Tensor | List(np.ndarray)): (N, 3, h, w) for tensor, [(h, w, 3) x N] for list.
         """
-        not_tensor = not isinstance(im, torch.Tensor)
-        if not_tensor:
+        if not isinstance(im, torch.Tensor):
             im = np.stack(self.pre_transform(im))
-            if im.shape[-1] == 3:
-                im = im[..., ::-1]  # BGR to RGB
-            im = im.transpose((0, 3, 1, 2))  # BHWC to BCHW, (n, 3, h, w)
-            im = np.ascontiguousarray(im)  # contiguous
+            # im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
+            # im = np.ascontiguousarray(im)  # contiguous
+            if len(im.shape) < 4:
+                im = np.expand_dims(im, -1)
+            if (im.shape[3] == 1):
+                im = np.ascontiguousarray(im.transpose(0, 3, 1, 2))
+            elif (im.shape[3] == 3):
+                im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
+                im = np.ascontiguousarray(im)  # contiguous
+            elif (im.shape[3] == 4):
+                # print("im.shape=", im.shape)
+                img3c = np.ascontiguousarray(im.transpose(0, 3, 1, 2)[:, :3, :, :][:, ::-1, :, :])
+                img1c = im.transpose(0, 3, 1, 2)[:, -1:, :, :]
+                # print("img3c.shape=",img3c.shape)
+                # print("img1c.shape=", img1c.shape)
+
+                # img1c = np.expand_dims(img1c, 0)
+                im = np.concatenate((img3c, img1c), axis=1)
+            elif (im.shape[3] == 6):
+                img3c = np.ascontiguousarray(im.transpose(0, 3, 1, 2)[:, :3, :, :][:, ::-1, :, :])
+                img3c2 = np.ascontiguousarray(im.transpose(0, 3, 1, 2)[:, 3:, :, :][:, ::-1, :, :])
+                im = np.concatenate((img3c, img3c2), axis=1)
+            else: # Multispectral
+                im = np.ascontiguousarray(im.transpose(0, 3, 1, 2)[:, ::-1, :, :])  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
+            if im.dtype.kind == 'u' or im.dtype.kind == 'i':
+                # 如果是整数类型 (unsigned 'u' 或 signed 'i')
+                if im.dtype != np.uint8:
+                    im = im.astype(np.float32)
             im = torch.from_numpy(im)
 
-        im = im.to(self.device)
-        im = im.half() if self.model.fp16 else im.float()  # uint8 to fp16/32
-        if not_tensor:
-            im /= 255  # 0 - 255 to 0.0 - 1.0
-        return im
+        # NOTE: assuming im with (b, 3, h, w) if it's a tensor
+        img = im.to(self.device)
+        img = img.half() if self.model.fp16 else img.float()  # uint8 to fp16/32
+        img /= 255  # 0 - 255 to 0.0 - 1.0
+        return img
 
-    def inference(self, im: torch.Tensor, *args, **kwargs):
-        """Run inference on a given image using the specified model and arguments."""
+    # 2025 01 05
+
+    def inference(self, im, *args, **kwargs):
+        """Runs inference on a given image using the specified model and arguments."""
         visualize = (
             increment_path(self.save_dir / Path(self.batch[0][0]).stem, mkdir=True)
             if self.args.visualize and (not self.source_type.tensor)
@@ -181,62 +190,45 @@ class BasePredictor:
         )
         return self.model(im, augment=self.args.augment, visualize=visualize, embed=self.args.embed, *args, **kwargs)
 
-    def pre_transform(self, im: list[np.ndarray]) -> list[np.ndarray]:
-        """Pre-transform input image before inference.
+    def pre_transform(self, im):
+        """
+        Pre-transform input image before inference.
 
         Args:
-            im (list[np.ndarray]): List of images with shape [(H, W, 3) x N].
+            im (List(np.ndarray)): (N, 3, h, w) for tensor, [(h, w, 3) x N] for list.
 
         Returns:
-            (list[np.ndarray]): List of transformed images.
+            (list): A list of transformed images.
         """
         same_shapes = len({x.shape for x in im}) == 1
         letterbox = LetterBox(
             self.imgsz,
-            auto=same_shapes
-            and self.args.rect
-            and (self.model.pt or (getattr(self.model, "dynamic", False) and not self.model.imx)),
+            auto=same_shapes and (self.model.pt or (getattr(self.model, "dynamic", False) and not self.model.imx)),
             stride=self.model.stride,
         )
         return [letterbox(image=x) for x in im]
 
     def postprocess(self, preds, img, orig_imgs):
-        """Post-process predictions for an image and return them."""
+        """Post-processes predictions for an image and returns them."""
         return preds
 
-    def __call__(self, source=None, model=None, stream: bool = False, *args, **kwargs):
-        """Perform inference on an image or stream.
-
-        Args:
-            source (str | Path | list[str] | list[Path] | list[np.ndarray] | np.ndarray | torch.Tensor, optional):
-                Source for inference.
-            model (str | Path | torch.nn.Module, optional): Model for inference.
-            stream (bool): Whether to stream the inference results. If True, returns a generator.
-            *args (Any): Additional arguments for the inference method.
-            **kwargs (Any): Additional keyword arguments for the inference method.
-
-        Returns:
-            (list[ultralytics.engine.results.Results] | generator): Results objects or generator of Results objects.
-        """
+    def __call__(self, source=None, model=None, stream=False, *args, **kwargs):
+        """Performs inference on an image or stream."""
         self.stream = stream
         if stream:
             return self.stream_inference(source, model, *args, **kwargs)
         else:
-            return list(self.stream_inference(source, model, *args, **kwargs))  # merge list of Results into one
+            return list(self.stream_inference(source, model, *args, **kwargs))  # merge list of Result into one
 
     def predict_cli(self, source=None, model=None):
-        """Method used for Command Line Interface (CLI) prediction.
+        """
+        Method used for Command Line Interface (CLI) prediction.
 
-        This function is designed to run predictions using the CLI. It sets up the source and model, then processes the
-        inputs in a streaming manner. This method ensures that no outputs accumulate in memory by consuming the
+        This function is designed to run predictions using the CLI. It sets up the source and model, then processes
+        the inputs in a streaming manner. This method ensures that no outputs accumulate in memory by consuming the
         generator without storing results.
 
-        Args:
-            source (str | Path | list[str] | list[Path] | list[np.ndarray] | np.ndarray | torch.Tensor, optional):
-                Source for inference.
-            model (str | Path | torch.nn.Module, optional): Model for inference.
-
-        Notes:
+        Note:
             Do not modify this function or remove the generator. The generator ensures that no outputs are
             accumulated in memory, which is critical for preventing memory issues during long-running predictions.
         """
@@ -244,49 +236,40 @@ class BasePredictor:
         for _ in gen:  # sourcery skip: remove-empty-nested-block, noqa
             pass
 
-    def setup_source(self, source, stride: int | None = None):
-        """Set up source and inference mode.
-
-        Args:
-            source (str | Path | list[str] | list[Path] | list[np.ndarray] | np.ndarray | torch.Tensor): Source for
-                inference.
-            stride (int, optional): Model stride for image size checking.
-        """
-        self.imgsz = check_imgsz(self.args.imgsz, stride=stride or self.model.stride, min_dim=2)  # check image size
+    def setup_source(self, source):
+        """Sets up source and inference mode."""
+        self.imgsz = check_imgsz(self.args.imgsz, stride=self.model.stride, min_dim=2)  # check image size
+        self.transforms = (
+            getattr(
+                self.model.model,
+                "transforms",
+                classify_transforms(self.imgsz[0], crop_fraction=self.args.crop_fraction),
+            )
+            if self.args.task == "classify"
+            else None
+        )
         self.dataset = load_inference_source(
             source=source,
             batch=self.args.batch,
             vid_stride=self.args.vid_stride,
             buffer=self.args.stream_buffer,
-            channels=getattr(self.model, "ch", 3),
+            use_simotm=self.args.use_simotm,
+            imgsz=self.args.imgsz,
+            pairs_rgb_ir=self.args.pairs_rgb_ir,
         )
         self.source_type = self.dataset.source_type
-        if (
+        if not getattr(self, "stream", True) and (
             self.source_type.stream
             or self.source_type.screenshot
             or len(self.dataset) > 1000  # many images
             or any(getattr(self.dataset, "video_flag", [False]))
-        ):  # long sequence
-            import torchvision  # noqa (import here triggers torchvision NMS use in nms.py)
-
-            if not getattr(self, "stream", True):  # videos
-                LOGGER.warning(STREAM_WARNING)
+        ):  # videos
+            LOGGER.warning(STREAM_WARNING)
         self.vid_writer = {}
 
     @smart_inference_mode()
     def stream_inference(self, source=None, model=None, *args, **kwargs):
-        """Stream real-time inference on camera feed and save results to file.
-
-        Args:
-            source (str | Path | list[str] | list[Path] | list[np.ndarray] | np.ndarray | torch.Tensor, optional):
-                Source for inference.
-            model (str | Path | torch.nn.Module, optional): Model for inference.
-            *args (Any): Additional arguments for the inference method.
-            **kwargs (Any): Additional keyword arguments for the inference method.
-
-        Yields:
-            (ultralytics.engine.results.Results): Results objects.
-        """
+        """Streams real-time inference on camera feed and saves results to file."""
         if self.args.verbose:
             LOGGER.info("")
 
@@ -304,9 +287,8 @@ class BasePredictor:
 
             # Warmup model
             if not self.done_warmup:
-                self.model.warmup(
-                    imgsz=(1 if self.model.pt or self.model.triton else self.dataset.bs, self.model.ch, *self.imgsz)
-                )
+                # self.model.warmup(imgsz=(1 if self.model.pt or self.model.triton else self.dataset.bs, 3, *self.imgsz))
+                self.model.warmup(imgsz=(1 if self.model.pt or self.model.triton else self.dataset.bs, self.channels, *self.imgsz))
                 self.done_warmup = True
 
             self.seen, self.windows, self.batch = 0, [], None
@@ -316,8 +298,7 @@ class BasePredictor:
                 ops.Profile(device=self.device),
             )
             self.run_callbacks("on_predict_start")
-            for batch in self.dataset:
-                self.batch = batch
+            for self.batch in self.dataset:
                 self.run_callbacks("on_predict_batch_start")
                 paths, im0s, s = self.batch
 
@@ -334,31 +315,20 @@ class BasePredictor:
 
                 # Postprocess
                 with profilers[2]:
-                    if getattr(self.args, "sparse_sahi", False):
-                        global_results = self.postprocess(preds, im, im0s)
-                        final_results = []
-                        for i, res in enumerate(global_results):
-                            final_res = self._run_sparse_sahi_single(im0s[i], res, *args, **kwargs)
-                            final_results.append(final_res)
-                        self.results = final_results
-                    else:
-                        self.results = self.postprocess(preds, im, im0s)
+                    self.results = self.postprocess(preds, im, im0s)
                 self.run_callbacks("on_predict_postprocess_end")
 
                 # Visualize, save, write results
                 n = len(im0s)
-                try:
-                    for i in range(n):
-                        self.seen += 1
-                        self.results[i].speed = {
-                            "preprocess": profilers[0].dt * 1e3 / n,
-                            "inference": profilers[1].dt * 1e3 / n,
-                            "postprocess": profilers[2].dt * 1e3 / n,
-                        }
-                        if self.args.verbose or self.args.save or self.args.save_txt or self.args.show:
-                            s[i] += self.write_results(i, Path(paths[i]), im, s)
-                except StopIteration:
-                    break
+                for i in range(n):
+                    self.seen += 1
+                    self.results[i].speed = {
+                        "preprocess": profilers[0].dt * 1e3 / n,
+                        "inference": profilers[1].dt * 1e3 / n,
+                        "postprocess": profilers[2].dt * 1e3 / n,
+                    }
+                    if self.args.verbose or self.args.save or self.args.save_txt or self.args.show:
+                        s[i] += self.write_results(i, Path(paths[i]), im, s)
 
                 # Print batch results
                 if self.args.verbose:
@@ -372,15 +342,12 @@ class BasePredictor:
             if isinstance(v, cv2.VideoWriter):
                 v.release()
 
-        if self.args.show:
-            cv2.destroyAllWindows()  # close any open windows
-
         # Print final results
         if self.args.verbose and self.seen:
             t = tuple(x.t / self.seen * 1e3 for x in profilers)  # speeds per image
             LOGGER.info(
                 f"Speed: %.1fms preprocess, %.1fms inference, %.1fms postprocess per image at shape "
-                f"{(min(self.args.batch, self.seen), getattr(self.model, 'ch', 3), *im.shape[2:])}" % t
+                f"{(min(self.args.batch, self.seen), 3, *im.shape[2:])}" % t
             )
         if self.args.save or self.args.save_txt or self.args.save_crop:
             nl = len(list(self.save_dir.glob("labels/*.txt")))  # number of labels
@@ -388,42 +355,25 @@ class BasePredictor:
             LOGGER.info(f"Results saved to {colorstr('bold', self.save_dir)}{s}")
         self.run_callbacks("on_predict_end")
 
-    def setup_model(self, model, verbose: bool = True):
-        """Initialize YOLO model with given parameters and set it to evaluation mode.
-
-        Args:
-            model (str | Path | torch.nn.Module, optional): Model to load or use.
-            verbose (bool): Whether to print verbose output.
-        """
+    def setup_model(self, model, verbose=True):
+        """Initialize YOLO model with given parameters and set it to evaluation mode."""
         self.model = AutoBackend(
-            model=model or self.args.model,
+            weights=model or self.args.model,
             device=select_device(self.args.device, verbose=verbose),
             dnn=self.args.dnn,
             data=self.args.data,
             fp16=self.args.half,
+            batch=self.args.batch,
             fuse=True,
             verbose=verbose,
         )
 
         self.device = self.model.device  # update device
         self.args.half = self.model.fp16  # update half
-        if hasattr(self.model, "imgsz") and not getattr(self.model, "dynamic", False):
-            self.args.imgsz = self.model.imgsz  # reuse imgsz from export metadata
         self.model.eval()
-        self.model = attempt_compile(self.model, device=self.device, mode=self.args.compile)
 
-    def write_results(self, i: int, p: Path, im: torch.Tensor, s: list[str]) -> str:
-        """Write inference results to a file or directory.
-
-        Args:
-            i (int): Index of the current image in the batch.
-            p (Path): Path to the current image.
-            im (torch.Tensor): Preprocessed image tensor.
-            s (list[str]): List of result strings.
-
-        Returns:
-            (str): String with result information.
-        """
+    def write_results(self, i, p, im, s):
+        """Write inference results to a file or directory."""
         string = ""  # print string
         if len(im.shape) == 3:
             im = im[None]  # expand for batch dim
@@ -448,6 +398,7 @@ class BasePredictor:
                 conf=self.args.show_conf,
                 labels=self.args.show_labels,
                 im_gpu=None if self.args.retina_masks else im[i],
+                use_simotm=self.args.use_simotm,  # 2025-01-05
             )
 
         # Save results
@@ -458,23 +409,18 @@ class BasePredictor:
         if self.args.show:
             self.show(str(p))
         if self.args.save:
-            self.save_predicted_images(self.save_dir / p.name, frame)
+            self.save_predicted_images(str(self.save_dir / p.name), frame)
 
         return string
 
-    def save_predicted_images(self, save_path: Path, frame: int = 0):
-        """Save video predictions as mp4 or images as jpg at specified path.
-
-        Args:
-            save_path (Path): Path to save the results.
-            frame (int): Frame number for video mode.
-        """
+    def save_predicted_images(self, save_path="", frame=0):
+        """Save video predictions as mp4 at specified path."""
         im = self.plotted_img
 
         # Save videos and streams
         if self.dataset.mode in {"stream", "video"}:
             fps = self.dataset.fps if self.dataset.mode == "video" else 30
-            frames_path = self.save_dir / f"{save_path.stem}_frames"  # save frames to a separate directory
+            frames_path = f"{save_path.split('.', 1)[0]}_frames/"
             if save_path not in self.vid_writer:  # new video
                 if self.args.save_frames:
                     Path(frames_path).mkdir(parents=True, exist_ok=True)
@@ -489,175 +435,106 @@ class BasePredictor:
             # Save video
             self.vid_writer[save_path].write(im)
             if self.args.save_frames:
-                cv2.imwrite(f"{frames_path}/{save_path.stem}_{frame}.jpg", im)
+                # cv2.imwrite(f"{frames_path}{frame}.jpg", im)
+                self.save_image_mutichannel(im, f"{frames_path}{frame}.jpg")
 
         # Save images
         else:
-            cv2.imwrite(str(save_path.with_suffix(".jpg")), im)  # save to JPG for best support
+            # cv2.imwrite(str(Path(save_path).with_suffix(".jpg")), im)  # save to JPG for best support
+            self.save_image_mutichannel(im, str(Path(save_path).with_suffix(".jpg")))
 
-    def show(self, p: str = ""):
-        """Display an image in a window."""
+    # def show(self, p=""):
+    #     """Display an image in a window using the OpenCV imshow function."""
+    #     im = self.plotted_img
+    #     if platform.system() == "Linux" and p not in self.windows:
+    #         self.windows.append(p)
+    #         cv2.namedWindow(p, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
+    #         cv2.resizeWindow(p, im.shape[1], im.shape[0])  # (width, height)
+    #     cv2.imshow(p, im)
+    #     cv2.waitKey(300 if self.dataset.mode == "image" else 1)  # 1 millisecond
+
+    def show(self, p=""):
+        """Display an image in a window using OpenCV imshow()."""
         im = self.plotted_img
-        if platform.system() == "Linux" and p not in self.windows:
-            self.windows.append(p)
-            cv2.namedWindow(p, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
-            cv2.resizeWindow(p, im.shape[1], im.shape[0])  # (width, height)
-        cv2.imshow(p, im)
-        if cv2.waitKey(300 if self.dataset.mode == "image" else 1) & 0xFF == ord("q"):  # 300ms if image; else 1ms
-            raise StopIteration
+        channels = im.shape[2] if len(im.shape) == 3 else 1  # 获取通道数
+        try:
+            if channels  in [1, 3]:  # 如果是3通道图像，直接显示
+                if platform.system() == "Linux" and p not in self.windows:
+                    self.windows.append(p)
+                    cv2.namedWindow(p, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
+                    cv2.resizeWindow(p, im.shape[1], im.shape[0])  # (width, height)
+                cv2.imshow(p, im)
+                cv2.waitKey(300 if self.dataset.mode == "image" else 1)  # 1 millisecond
+
+            elif channels in [4, 6]:  # 如果是4通道或6通道图像，分离显示
+                if channels == 4:
+                    im_rgb = im[:, :, :3]  # 前三个通道
+                    im_extra = im[:, :, 3:4]  # 第四个通道
+                elif channels == 6:
+                    im_rgb = im[:, :, :3]  # 前三个通道
+                    im_extra = im[:, :, 3:6]  # 后三个通道
+
+                # 显示前三个通道
+                window_name_rgb = f"{p}_RGB"
+                if platform.system() == "Linux" and window_name_rgb not in self.windows:
+                    self.windows.append(window_name_rgb)
+                    cv2.namedWindow(window_name_rgb, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+                    cv2.resizeWindow(window_name_rgb, im_rgb.shape[1], im_rgb.shape[0])
+                cv2.imshow(window_name_rgb, im_rgb)
+
+                # 显示额外的通道
+                window_name_extra = f"{p}_Extra"
+                if platform.system() == "Linux" and window_name_extra not in self.windows:
+                    self.windows.append(window_name_extra)
+                    cv2.namedWindow(window_name_extra, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+                    cv2.resizeWindow(window_name_extra, im_extra.shape[1], im_extra.shape[0])
+                cv2.imshow(window_name_extra, im_extra)
+
+                cv2.waitKey(300 if self.dataset.mode == "image" else 1)  # 1 millisecond
+
+            else:  # 如果通道数不符合预期，打印警告信息
+                print(f"Warning: Image with {channels} channels is not supported for display.")
+        except:
+            print(f"Warning: Image with {channels} channels is not supported for display.")
 
     def run_callbacks(self, event: str):
-        """Run all registered callbacks for a specific event."""
+        """Runs all registered callbacks for a specific event."""
         for callback in self.callbacks.get(event, []):
             callback(self)
 
-    def add_callback(self, event: str, func: callable):
-        """Add a callback function for a specific event."""
+    def add_callback(self, event: str, func):
+        """Add callback."""
         self.callbacks[event].append(func)
 
-    def _pad_slice(self, slice_img, slice_h, slice_w):
-        """Pad slice to match slice_h and slice_w."""
-        h, w = slice_img.shape[:2]
-        if h == slice_h and w == slice_w:
-            return slice_img
-        pad_img = np.full((slice_h, slice_w, 3), 114, dtype=np.uint8)
-        pad_img[:h, :w] = slice_img
-        return pad_img
 
-    def _perform_batched_nms(self, boxes, scores, cls, iou_thres):
-        """Perform batched NMS using torchvision."""
-        from torchvision.ops import nms
-        if boxes.numel() == 0:
-            return torch.empty(0, dtype=torch.long, device=self.device)
-        max_coordinate = boxes.max()
-        offsets = cls.to(boxes) * (max_coordinate + 1)
-        boxes_for_nms = boxes + offsets[:, None]
-        return nms(boxes_for_nms, scores, iou_thres)
+    def save_image_mutichannel(self, im, save_path):
+        channels = im.shape[2]  # 获取通道数
 
-    def _run_sparse_sahi_single(self, img, global_result, *args, **kwargs):
-        """Run Sparse SAHI on a single image."""
-        from ultralytics.engine.results import Boxes
+        # 获取文件扩展名，不区分大小写
+        file_extension = os.path.splitext(save_path)[1].lower()
+        # print(file_extension)
+        if channels == 3 or channels == 1:
+            cv2.imwrite(save_path, im)
+        elif channels == 6:
+            # 假设6通道的图像由2个RGB合并而来
+            # 分开RGB
+            im1 = im[:, :, :3]  # 第一部分RGB
+            im2 = im[:, :, 3:]  # 第二部分RGB
 
-        slice_size = getattr(self.args, 'slice_size', 640)
-        overlap_ratio = getattr(self.args, 'overlap_ratio', 0.2)
-        slice_h = slice_w = slice_size
-        overlap = int(min(slice_h, slice_w) * overlap_ratio)
-        
-        img_h, img_w = img.shape[:2]
-        
-        # --- Step 1: Objectness Mask ---
-        mask_scale = 8
-        m_h, m_w = (img_h // mask_scale) + 1, (img_w // mask_scale) + 1
-        objectness_mask = np.zeros((m_h, m_w), dtype=np.float32)
-        
-        if len(global_result.boxes) > 0:
-            g_boxes = (global_result.boxes.xyxy.cpu().numpy() / mask_scale).astype(int)
-            g_scores = global_result.boxes.conf.cpu().numpy()
-            
-            for box, score in zip(g_boxes, g_scores):
-                x1, y1, x2, y2 = box
-                y1_i, y2_i = max(0, y1), min(m_h, y2)
-                x1_i, x2_i = max(0, x1), min(m_w, x2)
-                objectness_mask[y1_i:y2_i, x1_i:x2_i] = np.maximum(objectness_mask[y1_i:y2_i, x1_i:x2_i], score)
-        
-        # --- Step 2: Adaptive Sparse Slicing ---
-        active_slice_coords = []
-        step_y, step_x = slice_h - overlap, slice_w - overlap
-        
-        for y_min in range(0, img_h, step_y):
-            for x_min in range(0, img_w, step_x):
-                y_max, x_max = min(y_min + slice_h, img_h), min(x_min + slice_w, img_w)
-                
-                m_y1, m_x1 = y_min // mask_scale, x_min // mask_scale
-                m_y2, m_x2 = y_max // mask_scale, x_max // mask_scale
-                
-                # Activation threshold 0.15
-                if m_y2 > m_y1 and m_x2 > m_x1:
-                    if objectness_mask[m_y1:m_y2, m_x1:m_x2].max() > 0.15:
-                        active_slice_coords.append((x_min, y_min, x_max, y_max))
+            # 分别保存
+            cv2.imwrite(save_path.replace(file_extension, '_part1' + file_extension), im1)
+            cv2.imwrite(save_path.replace(file_extension, '_part2' + file_extension), im2)
 
-        # Collect all boxes (Global + Slices)
-        all_boxes = []
-        all_scores = []
-        all_cls = []
-        all_sources = [] # Track sources: 0 for global, 1 for slice
-        
-        # Keep global boxes
-        if len(global_result.boxes) > 0:
-            all_boxes.append(global_result.boxes.xyxy)
-            all_scores.append(global_result.boxes.conf)
-            all_cls.append(global_result.boxes.cls)
-            all_sources.extend([0] * len(global_result.boxes))
-            
-        # --- Step 3: Batch Inference on Slices ---
-        if active_slice_coords:
-            batch_imgs = []
-            for (x1, y1, x2, y2) in active_slice_coords:
-                crop = img[y1:y2, x1:x2]
-                batch_imgs.append(self._pad_slice(crop, slice_h, slice_w))
-            
-            # Preprocess batch
-            # Note: preprocess handles tensor conversion, normalization, etc.
-            slice_tensor = self.preprocess(batch_imgs)
-            
-            # Inference
-            # We must use self.inference
-            slice_preds = self.inference(slice_tensor, *args, **kwargs)
-            
-            # Postprocess slices
-            # We pass batch_imgs as 'im0s' so postprocess scales boxes back to slice size (slice_size)
-            # This is crucial.
-            slice_results = self.postprocess(slice_preds, slice_tensor, batch_imgs)
-            
-            for res, (off_x, off_y, _, _) in zip(slice_results, active_slice_coords):
-                if len(res.boxes) > 0:
-                    boxes = res.boxes.xyxy.clone()
-                    boxes[:, [0, 2]] += off_x
-                    boxes[:, [1, 3]] += off_y
-                    all_boxes.append(boxes)
-                    all_scores.append(res.boxes.conf)
-                    all_cls.append(res.boxes.cls)
-                    all_sources.extend([1] * len(boxes))
+        elif channels == 4:
+            # 假设4通道的图像是RGB和灰度图
+            rgb = im[:, :, :3]  # RGB部分
+            gray = im[:, :, 3:]  # 灰度图部分
 
-        # --- Step 4: Merge & NMS ---
-        if not all_boxes:
-             # No detections
-             global_result.sparse_sahi_metadata = {
-                 'objectness_map': objectness_mask,
-                 'slices': active_slice_coords,
-                 'final_sources': []
-             }
-             return global_result
-        
-        cat_boxes = torch.cat(all_boxes).to(self.device)
-        cat_scores = torch.cat(all_scores).to(self.device)
-        cat_cls = torch.cat(all_cls).to(self.device)
-        
-        # Batched NMS
-        keep = self._perform_batched_nms(cat_boxes, cat_scores, cat_cls, self.args.iou)
-        
-        final_boxes = cat_boxes[keep]
-        final_scores = cat_scores[keep]
-        final_cls = cat_cls[keep]
-        
-        # Filter sources
-        keep_indices = keep.cpu().numpy()
-        current_sources = np.array(all_sources)
-        final_sources = current_sources[keep_indices].tolist() if len(current_sources) > 0 else []
+            # 分别保存
+            cv2.imwrite(save_path.replace(file_extension, '_part1' + file_extension), rgb)
+            cv2.imwrite(save_path.replace(file_extension, '_part2' + file_extension), gray)
 
-        # Construct new Boxes object
-        if len(final_boxes) > 0:
-            det = torch.cat([final_boxes, final_scores.unsqueeze(1), final_cls.unsqueeze(1)], dim=1)
         else:
-            det = torch.empty((0, 6), device=self.device)
-            
-        global_result.boxes = Boxes(det, global_result.orig_shape)
-        
-        # Attach Metadata
-        global_result.sparse_sahi_metadata = {
-            'objectness_map': objectness_mask,
-            'slices': active_slice_coords,
-            'final_sources': final_sources
-        }
-        
-        return global_result
+            cv2.imwrite(str(Path(save_path).with_suffix(".jpg")), im[:, :, :3])
+            # 有需要的话，可以通过下列方式保存其他通道   If desired, additional channels can be saved as follows
+            # cv2.imwrite(save_path.replace(file_extension, '_part2' + ".jpg")), im[:, :, 4:5])  # 保存第四通道 其余通道类似  Save channel 4 The rest of the channels are similar

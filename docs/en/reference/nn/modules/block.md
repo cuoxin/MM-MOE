@@ -5,9 +5,9 @@ keywords: Ultralytics, YOLO, neural networks, block modules, DFL, Proto, HGStem,
 
 # Reference for `ultralytics/nn/modules/block.py`
 
-!!! success "Improvements"
+!!! note
 
-    This page is sourced from [https://github.com/ultralytics/ultralytics/blob/main/ultralytics/nn/modules/block.py](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/nn/modules/block.py). Have an improvement or example to add? Open a [Pull Request](https://docs.ultralytics.com/help/contributing/) — thank you! 🙏
+    This file is available at [https://github.com/ultralytics/ultralytics/blob/main/ultralytics/nn/modules/block.py](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/nn/modules/block.py). If you spot a problem please help fix it by [contributing](https://docs.ultralytics.com/help/contributing/) a [Pull Request](https://github.com/ultralytics/ultralytics/edit/main/ultralytics/nn/modules/block.py) 🛠️. Thank you 🙏!
 
 <br>
 
@@ -192,29 +192,5 @@ keywords: Ultralytics, YOLO, neural networks, block modules, DFL, Proto, HGStem,
 <br><br><hr><br>
 
 ## ::: ultralytics.nn.modules.block.TorchVision
-
-<br><br><hr><br>
-
-## ::: ultralytics.nn.modules.block.AAttn
-
-<br><br><hr><br>
-
-## ::: ultralytics.nn.modules.block.ABlock
-
-<br><br><hr><br>
-
-## ::: ultralytics.nn.modules.block.A2C2f
-
-<br><br><hr><br>
-
-## ::: ultralytics.nn.modules.block.SwiGLUFFN
-
-<br><br><hr><br>
-
-## ::: ultralytics.nn.modules.block.Residual
-
-<br><br><hr><br>
-
-## ::: ultralytics.nn.modules.block.SAVPE
 
 <br><br>

@@ -46,7 +46,8 @@ Start your compute and open a Terminal:
 
 ### Create virtualenv
 
-Create a conda virtual environment with your preferred Python version and install pip in it. Python 3.13.1 currently has dependency issues in AzureML, so use Python 3.12 instead.
+Create your conda virtualenv with your favorite python version and install pip in it:
+Python 3.13.1 is having some issues with some dependencies in AzureML.
 
 ```bash
 conda create --name yolo11env -y python=3.12
@@ -60,7 +61,7 @@ Install the required dependencies:
 cd ultralytics
 pip install -r requirements.txt
 pip install ultralytics
-pip install onnx
+pip install onnx>=1.12.0
 ```
 
 ### Perform YOLO11 tasks
@@ -89,7 +90,7 @@ Open the compute Terminal.
   <img width="480" src="https://github.com/ultralytics/docs/releases/download/0/open-terminal.avif" alt="Open Terminal">
 </p>
 
-From your compute terminal, create a new ipykernel using Python 3.12 that will be used by your notebook to manage dependencies:
+From your compute terminal, you need to create a new ipykernel (with a specific python version - because Python 3.13.1 is having some issues with some dependencies in AzureML) that will be used by your notebook to manage your dependencies:
 
 ```bash
 conda create --name yolo11env -y python=3.12
@@ -99,9 +100,9 @@ conda install ipykernel -y
 python -m ipykernel install --user --name yolo11env --display-name "yolo11env"
 ```
 
-Close your terminal and create a new notebook. From your notebook, select the newly created kernel.
+Close your terminal and create a new notebook. From your Notebook, you can select the new kernel.
 
-Then open a notebook cell and install the required dependencies:
+Then you can open a Notebook cell and install the required dependencies:
 
 ```bash
 %%bash
@@ -109,10 +110,10 @@ source activate yolo11env
 cd ultralytics
 pip install -r requirements.txt
 pip install ultralytics
-pip install onnx
+pip install onnx>=1.12.0
 ```
 
-Note that you need to run `source activate yolo11env` in every `%%bash` cell to ensure the cell uses the intended environment.
+Note that we need to use the `source activate yolo11env` for all the %%bash cells, to make sure that the %%bash cell uses environment we want.
 
 Run some predictions using the [Ultralytics CLI](../quickstart.md#use-ultralytics-with-cli):
 
@@ -159,13 +160,13 @@ Running YOLO11 on AzureML for model training involves several steps:
 
 1. **Create a Compute Instance**: From your AzureML workspace, navigate to Compute > Compute instances > New, and select the required instance.
 
-2. **Set Up the Environment**: Start your compute instance, open a terminal, and create a Conda environment. Set your Python version (Python 3.13.1 is not supported yet):
+2. **Setup Environment**: Start your compute instance, open a terminal, and create a conda environment, and don't forget to set your python version (python 3.13.1 is not supported yet) :
 
     ```bash
     conda create --name yolo11env -y python=3.12
     conda activate yolo11env
     conda install pip -y
-    pip install ultralytics onnx
+    pip install ultralytics onnx>=1.12.0
     ```
 
 3. **Run YOLO11 Tasks**: Use the Ultralytics CLI to train your model:
@@ -214,7 +215,7 @@ Yes, AzureML allows you to use both the Ultralytics CLI and the Python interface
     model.train(data="coco8.yaml", epochs=3)
     ```
 
-For step-by-step instructions, refer to the [CLI quickstart guide](../quickstart.md#use-ultralytics-with-cli) and the [Python quickstart guide](../quickstart.md#use-ultralytics-with-python).
+Refer to the quickstart guides for more detailed instructions [here](../quickstart.md#use-ultralytics-with-cli) and [here](../quickstart.md#use-ultralytics-with-python).
 
 ### What is the advantage of using Ultralytics YOLO11 over other [object detection](https://www.ultralytics.com/glossary/object-detection) models?
 

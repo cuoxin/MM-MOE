@@ -11,7 +11,6 @@ from functools import partial
 import torch
 
 from ultralytics.utils.downloads import attempt_download_asset
-from ultralytics.utils.patches import torch_load
 
 from .modules.decoders import MaskDecoder
 from .modules.encoders import FpnNeck, Hiera, ImageEncoder, ImageEncoderViT, MemoryEncoder, PromptEncoder
@@ -21,23 +20,8 @@ from .modules.tiny_encoder import TinyViT
 from .modules.transformer import TwoWayTransformer
 
 
-def _load_checkpoint(model, checkpoint):
-    """Load checkpoint into model from file path."""
-    if checkpoint is None:
-        return model
-
-    checkpoint = attempt_download_asset(checkpoint)
-    with open(checkpoint, "rb") as f:
-        state_dict = torch_load(f)
-    # Handle nested "model" key
-    if "model" in state_dict and isinstance(state_dict["model"], dict):
-        state_dict = state_dict["model"]
-    model.load_state_dict(state_dict)
-    return model
-
-
 def build_sam_vit_h(checkpoint=None):
-    """Build and return a Segment Anything Model (SAM) h-size model with specified encoder parameters."""
+    """Builds and returns a Segment Anything Model (SAM) h-size model with specified encoder parameters."""
     return _build_sam(
         encoder_embed_dim=1280,
         encoder_depth=32,
@@ -48,7 +32,7 @@ def build_sam_vit_h(checkpoint=None):
 
 
 def build_sam_vit_l(checkpoint=None):
-    """Build and return a Segment Anything Model (SAM) l-size model with specified encoder parameters."""
+    """Builds and returns a Segment Anything Model (SAM) l-size model with specified encoder parameters."""
     return _build_sam(
         encoder_embed_dim=1024,
         encoder_depth=24,
@@ -59,7 +43,7 @@ def build_sam_vit_l(checkpoint=None):
 
 
 def build_sam_vit_b(checkpoint=None):
-    """Build and return a Segment Anything Model (SAM) b-size model with specified encoder parameters."""
+    """Constructs and returns a Segment Anything Model (SAM) with b-size architecture and optional checkpoint."""
     return _build_sam(
         encoder_embed_dim=768,
         encoder_depth=12,
@@ -70,7 +54,7 @@ def build_sam_vit_b(checkpoint=None):
 
 
 def build_mobile_sam(checkpoint=None):
-    """Build and return a Mobile Segment Anything Model (Mobile-SAM) for efficient image segmentation."""
+    """Builds and returns a Mobile Segment Anything Model (Mobile-SAM) for efficient image segmentation."""
     return _build_sam(
         encoder_embed_dim=[64, 128, 160, 320],
         encoder_depth=[2, 2, 6, 2],
@@ -82,7 +66,7 @@ def build_mobile_sam(checkpoint=None):
 
 
 def build_sam2_t(checkpoint=None):
-    """Build and return a Segment Anything Model 2 (SAM2) tiny-size model with specified architecture parameters."""
+    """Builds and returns a Segment Anything Model 2 (SAM2) tiny-size model with specified architecture parameters."""
     return _build_sam2(
         encoder_embed_dim=96,
         encoder_stages=[1, 2, 7, 2],
@@ -95,7 +79,7 @@ def build_sam2_t(checkpoint=None):
 
 
 def build_sam2_s(checkpoint=None):
-    """Build and return a small-size Segment Anything Model 2 (SAM2) with specified architecture parameters."""
+    """Builds and returns a small-size Segment Anything Model (SAM2) with specified architecture parameters."""
     return _build_sam2(
         encoder_embed_dim=96,
         encoder_stages=[1, 2, 11, 2],
@@ -108,7 +92,7 @@ def build_sam2_s(checkpoint=None):
 
 
 def build_sam2_b(checkpoint=None):
-    """Build and return a Segment Anything Model 2 (SAM2) base-size model with specified architecture parameters."""
+    """Builds and returns a SAM2 base-size model with specified architecture parameters."""
     return _build_sam2(
         encoder_embed_dim=112,
         encoder_stages=[2, 3, 16, 3],
@@ -122,7 +106,7 @@ def build_sam2_b(checkpoint=None):
 
 
 def build_sam2_l(checkpoint=None):
-    """Build and return a large-size Segment Anything Model 2 (SAM2) with specified architecture parameters."""
+    """Builds and returns a large-size Segment Anything Model (SAM2) with specified architecture parameters."""
     return _build_sam2(
         encoder_embed_dim=144,
         encoder_stages=[2, 6, 36, 4],
@@ -142,15 +126,16 @@ def _build_sam(
     checkpoint=None,
     mobile_sam=False,
 ):
-    """Build a Segment Anything Model (SAM) with specified encoder parameters.
+    """
+    Builds a Segment Anything Model (SAM) with specified encoder parameters.
 
     Args:
-        encoder_embed_dim (int | list[int]): Embedding dimension for the encoder.
-        encoder_depth (int | list[int]): Depth of the encoder.
-        encoder_num_heads (int | list[int]): Number of attention heads in the encoder.
-        encoder_global_attn_indexes (list[int] | None): Indexes for global attention in the encoder.
-        checkpoint (str | None, optional): Path to the model checkpoint file.
-        mobile_sam (bool, optional): Whether to build a Mobile-SAM model.
+        encoder_embed_dim (int | List[int]): Embedding dimension for the encoder.
+        encoder_depth (int | List[int]): Depth of the encoder.
+        encoder_num_heads (int | List[int]): Number of attention heads in the encoder.
+        encoder_global_attn_indexes (List[int] | None): Indexes for global attention in the encoder.
+        checkpoint (str | None): Path to the model checkpoint file.
+        mobile_sam (bool): Whether to build a Mobile-SAM model.
 
     Returns:
         (SAMModel): A Segment Anything Model instance with the specified architecture.
@@ -220,32 +205,36 @@ def _build_sam(
         pixel_std=[58.395, 57.12, 57.375],
     )
     if checkpoint is not None:
-        sam = _load_checkpoint(sam, checkpoint)
+        checkpoint = attempt_download_asset(checkpoint)
+        with open(checkpoint, "rb") as f:
+            state_dict = torch.load(f)
+        sam.load_state_dict(state_dict)
     sam.eval()
     return sam
 
 
 def _build_sam2(
     encoder_embed_dim=1280,
-    encoder_stages=(2, 6, 36, 4),
+    encoder_stages=[2, 6, 36, 4],
     encoder_num_heads=2,
-    encoder_global_att_blocks=(7, 15, 23, 31),
-    encoder_backbone_channel_list=(1152, 576, 288, 144),
-    encoder_window_spatial_size=(7, 7),
-    encoder_window_spec=(8, 4, 16, 8),
+    encoder_global_att_blocks=[7, 15, 23, 31],
+    encoder_backbone_channel_list=[1152, 576, 288, 144],
+    encoder_window_spatial_size=[7, 7],
+    encoder_window_spec=[8, 4, 16, 8],
     checkpoint=None,
 ):
-    """Build and return a Segment Anything Model 2 (SAM2) with specified architecture parameters.
+    """
+    Builds and returns a Segment Anything Model 2 (SAM2) with specified architecture parameters.
 
     Args:
-        encoder_embed_dim (int, optional): Embedding dimension for the encoder.
-        encoder_stages (list[int], optional): Number of blocks in each stage of the encoder.
-        encoder_num_heads (int, optional): Number of attention heads in the encoder.
-        encoder_global_att_blocks (list[int], optional): Indices of global attention blocks in the encoder.
-        encoder_backbone_channel_list (list[int], optional): Channel dimensions for each level of the encoder backbone.
-        encoder_window_spatial_size (list[int], optional): Spatial size of the window for position embeddings.
-        encoder_window_spec (list[int], optional): Window specifications for each stage of the encoder.
-        checkpoint (str | None, optional): Path to the checkpoint file for loading pre-trained weights.
+        encoder_embed_dim (int): Embedding dimension for the encoder.
+        encoder_stages (List[int]): Number of blocks in each stage of the encoder.
+        encoder_num_heads (int): Number of attention heads in the encoder.
+        encoder_global_att_blocks (List[int]): Indices of global attention blocks in the encoder.
+        encoder_backbone_channel_list (List[int]): Channel dimensions for each level of the encoder backbone.
+        encoder_window_spatial_size (List[int]): Spatial size of the window for position embeddings.
+        encoder_window_spec (List[int]): Window specifications for each stage of the encoder.
+        checkpoint (str | None): Path to the checkpoint file for loading pre-trained weights.
 
     Returns:
         (SAM2Model): A configured and initialized SAM2 model.
@@ -311,7 +300,10 @@ def _build_sam2(
     )
 
     if checkpoint is not None:
-        sam2 = _load_checkpoint(sam2, checkpoint)
+        checkpoint = attempt_download_asset(checkpoint)
+        with open(checkpoint, "rb") as f:
+            state_dict = torch.load(f)["model"]
+        sam2.load_state_dict(state_dict)
     sam2.eval()
     return sam2
 
@@ -333,10 +325,11 @@ sam_model_map = {
 
 
 def build_sam(ckpt="sam_b.pt"):
-    """Build and return a Segment Anything Model (SAM) based on the provided checkpoint.
+    """
+    Builds and returns a Segment Anything Model (SAM) based on the provided checkpoint.
 
     Args:
-        ckpt (str | Path, optional): Path to the checkpoint file or name of a pre-defined SAM model.
+        ckpt (str | Path): Path to the checkpoint file or name of a pre-defined SAM model.
 
     Returns:
         (SAMModel | SAM2Model): A configured and initialized SAM or SAM2 model instance.

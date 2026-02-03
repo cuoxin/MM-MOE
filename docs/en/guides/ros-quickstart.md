@@ -176,7 +176,7 @@ while True:
     1. `rostopic echo <TOPIC-NAME>` : This command allows you to view messages published on a specific topic, helping you inspect the data flow.
     2. `rostopic list`: Use this command to list all available topics in the ROS system, giving you an overview of the active data streams.
     3. `rqt_graph`: This visualization tool displays the communication graph between nodes, providing insights into how nodes are interconnected and how they interact.
-    4. For more complex visualizations, such as 3D representations, you can use [RViz](https://wiki.ros.org/rviz). RViz (ROS Visualization) is a powerful 3D visualization tool for ROS. It allows you to visualize the state of your robot and its environment in real-time. With RViz, you can view sensor data (e.g., `sensor_msgs/Image`), robot model states, and various other types of information, making it easier to debug and understand the behavior of your robotic system.
+    4. For more complex visualizations, such as 3D representations, you can use [RViz](https://wiki.ros.org/rviz). RViz (ROS Visualization) is a powerful 3D visualization tool for ROS. It allows you to visualize the state of your robot and its environment in real-time. With RViz, you can view sensor data (e.g. `sensors_msgs/Image`), robot model states, and various other types of information, making it easier to debug and understand the behavior of your robotic system.
 
 ### Publish Detected Classes with `std_msgs/String`
 
@@ -243,7 +243,7 @@ Using YOLO, it is possible to extract and combine information from both RGB and 
 
 !!! warning "RGB-D Cameras"
 
-    When working with depth images, it is essential to ensure that the RGB and depth images are correctly aligned. RGB-D cameras, such as the [Intel RealSense](https://realsenseai.com/) series, provide synchronized RGB and depth images, making it easier to combine information from both sources. If using separate RGB and depth cameras, it is crucial to calibrate them to ensure accurate alignment.
+    When working with depth images, it is essential to ensure that the RGB and depth images are correctly aligned. RGB-D cameras, such as the [Intel RealSense](https://www.intelrealsense.com/) series, provide synchronized RGB and depth images, making it easier to combine information from both sources. If using separate RGB and depth cameras, it is crucial to calibrate them to ensure accurate alignment.
 
 #### Depth Step-by-Step Usage
 
@@ -280,7 +280,6 @@ def callback(data):
     depth = ros_numpy.numpify(data)
     result = segmentation_model(image)
 
-    all_objects = []
     for index, cls in enumerate(result[0].boxes.cls):
         class_index = int(cls.cpu().numpy())
         name = result[0].names[class_index]
@@ -288,7 +287,6 @@ def callback(data):
         obj = depth[mask == 1]
         obj = obj[~np.isnan(obj)]
         avg_distance = np.mean(obj) if len(obj) else np.inf
-        all_objects.append(f"{name}: {avg_distance:.2f}m")
 
     classes_pub.publish(String(data=str(all_objects)))
 
@@ -327,7 +325,6 @@ while True:
         depth = ros_numpy.numpify(data)
         result = segmentation_model(image)
 
-        all_objects = []
         for index, cls in enumerate(result[0].boxes.cls):
             class_index = int(cls.cpu().numpy())
             name = result[0].names[class_index]
@@ -335,7 +332,6 @@ while True:
             obj = depth[mask == 1]
             obj = obj[~np.isnan(obj)]
             avg_distance = np.mean(obj) if len(obj) else np.inf
-            all_objects.append(f"{name}: {avg_distance:.2f}m")
 
         classes_pub.publish(String(data=str(all_objects)))
 
@@ -401,7 +397,8 @@ import ros_numpy
 
 
 def pointcloud2_to_array(pointcloud2: PointCloud2) -> tuple:
-    """Convert a ROS PointCloud2 message to a numpy array.
+    """
+    Convert a ROS PointCloud2 message to a numpy array.
 
     Args:
         pointcloud2 (PointCloud2): the PointCloud2 message
@@ -461,7 +458,6 @@ for index, class_id in enumerate(classes):
     import open3d as o3d
     import ros_numpy
     import rospy
-    from sensor_msgs.msg import PointCloud2
 
     from ultralytics import YOLO
 
@@ -471,7 +467,8 @@ for index, class_id in enumerate(classes):
 
 
     def pointcloud2_to_array(pointcloud2: PointCloud2) -> tuple:
-        """Convert a ROS PointCloud2 message to a numpy array.
+        """
+        Convert a ROS PointCloud2 message to a numpy array.
 
         Args:
             pointcloud2 (PointCloud2): the PointCloud2 message
@@ -557,7 +554,7 @@ rospy.spin()
 
 ### What are ROS topics and how are they used in Ultralytics YOLO?
 
-ROS topics facilitate communication between nodes in a ROS network by using a publish-subscribe model. A topic is a named channel that nodes use to send and receive messages asynchronously. In the context of Ultralytics YOLO, you can make a node subscribe to an image topic, process the images using YOLO for tasks like [detection](https://docs.ultralytics.com/tasks/detect/) or [segmentation](https://docs.ultralytics.com/tasks/segment/), and publish outcomes to new topics.
+ROS topics facilitate communication between nodes in a ROS network by using a publish-subscribe model. A topic is a named channel that nodes use to send and receive messages asynchronously. In the context of Ultralytics YOLO, you can make a node subscribe to an image topic, process the images using YOLO for tasks like detection or segmentation, and publish outcomes to new topics.
 
 For example, subscribe to a camera topic and process the incoming image for detection:
 
@@ -569,7 +566,7 @@ rospy.Subscriber("/camera/color/image_raw", Image, callback)
 
 Depth images in ROS, represented by `sensor_msgs/Image`, provide the distance of objects from the camera, crucial for tasks like obstacle avoidance, 3D mapping, and localization. By [using depth information](https://en.wikipedia.org/wiki/Depth_map) along with RGB images, robots can better understand their 3D environment.
 
-With YOLO, you can extract [segmentation masks](https://www.ultralytics.com/glossary/image-segmentation) from RGB images and apply these masks to depth images to obtain precise 3D object information, improving the robot's ability to navigate and interact with its surroundings.
+With YOLO, you can extract segmentation masks from RGB images and apply these masks to depth images to obtain precise 3D object information, improving the robot's ability to navigate and interact with its surroundings.
 
 ### How can I visualize 3D point clouds with YOLO in ROS?
 
@@ -579,7 +576,7 @@ To visualize 3D point clouds in ROS with YOLO:
 2. Use YOLO to segment RGB images.
 3. Apply the segmentation mask to the point cloud.
 
-Here's an example using [Open3D](https://www.open3d.org/) for visualization:
+Here's an example using Open3D for visualization:
 
 ```python
 import sys
@@ -626,4 +623,4 @@ for index, class_id in enumerate(classes):
     o3d.visualization.draw_geometries([pcd])
 ```
 
-This approach provides a 3D visualization of segmented objects, useful for tasks like navigation and manipulation in [robotics applications](https://docs.ultralytics.com/guides/steps-of-a-cv-project/).
+This approach provides a 3D visualization of segmented objects, useful for tasks like navigation and manipulation.

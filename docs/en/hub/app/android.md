@@ -4,7 +4,7 @@ description: Experience real-time object detection on Android with Ultralytics. 
 keywords: Ultralytics, Android app, real-time object detection, YOLO models, TensorFlow Lite, FP16 quantization, INT8 quantization, hardware delegates, mobile AI, download app
 ---
 
-# Ultralytics Android App: Real-time Object Detection with YOLO Models
+# Ultralytics Android App: Real-time [Object Detection](https://www.ultralytics.com/glossary/object-detection) with YOLO Models
 
 <a href="https://www.ultralytics.com/hub" target="_blank">
   <img width="100%" src="https://github.com/ultralytics/docs/releases/download/0/ultralytics-android-app-detection.avif" alt="Ultralytics HUB preview image"></a>
@@ -16,7 +16,7 @@ keywords: Ultralytics, Android app, real-time object detection, YOLO models, Ten
   <img src="https://github.com/ultralytics/assets/raw/main/social/logo-transparent.png" width="3%" alt="space">
   <a href="https://twitter.com/ultralytics"><img src="https://github.com/ultralytics/assets/raw/main/social/logo-social-twitter.png" width="3%" alt="Ultralytics Twitter"></a>
   <img src="https://github.com/ultralytics/assets/raw/main/social/logo-transparent.png" width="3%" alt="space">
-  <a href="https://www.youtube.com/ultralytics?sub_confirmation=1"><img src="https://github.com/ultralytics/assets/raw/main/social/logo-social-youtube.png" width="3%" alt="Ultralytics YouTube"></a>
+  <a href="https://youtube.com/ultralytics?sub_confirmation=1"><img src="https://github.com/ultralytics/assets/raw/main/social/logo-social-youtube.png" width="3%" alt="Ultralytics YouTube"></a>
   <img src="https://github.com/ultralytics/assets/raw/main/social/logo-transparent.png" width="3%" alt="space">
   <a href="https://www.tiktok.com/@ultralytics"><img src="https://github.com/ultralytics/assets/raw/main/social/logo-social-tiktok.png" width="3%" alt="Ultralytics TikTok"></a>
   <img src="https://github.com/ultralytics/assets/raw/main/social/logo-transparent.png" width="3%" alt="space">
@@ -69,13 +69,13 @@ Different delegates are available on Android devices to accelerate model inferen
 
 Here's a table showing the primary vendors, their product lines, popular devices, and supported delegates:
 
-| Vendor                                    | Product Lines                                                                        | Popular Devices                                                                                                                                                              | Delegates Supported      |
-| ----------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| [Qualcomm](https://www.qualcomm.com/)     | [Snapdragon (e.g., 800 series)](https://www.qualcomm.com/snapdragon/overview)        | [Samsung Galaxy S21](https://www.samsung.com/us/mobile/phones/galaxy-s/), [OnePlus 9](https://www.oneplus.com/9), [Google Pixel 6](https://store.google.com/product/pixel_6) | CPU, GPU, Hexagon, NNAPI |
-| [Samsung](https://www.samsung.com/)       | [Exynos (e.g., Exynos 2100)](https://www.samsung.com/semiconductor/minisite/exynos/) | [Samsung Galaxy S21 (Global version)](https://www.samsung.com/us/mobile/phones/galaxy-s/)                                                                                    | CPU, GPU, NNAPI          |
-| [MediaTek](https://i.mediatek.com/)       | [Dimensity (e.g., Dimensity 1200)](https://i.mediatek.com/dimensity-1200)            | [Realme GT](https://www.realme.com/global/realme-gt), [Xiaomi Redmi Note](https://www.mi.com/global/phone/redmi/note-list)                                                   | CPU, GPU, NNAPI          |
-| [HiSilicon](https://www.hisilicon.com/cn) | [Kirin (e.g., Kirin 990)](https://www.hisilicon.com/en/products/Kirin)               | [Huawei P40 Pro](https://consumer.huawei.com/en/phones/), [Huawei Mate 30 Pro](https://consumer.huawei.com/en/phones/)                                                       | CPU, GPU, NNAPI          |
-| [NVIDIA](https://www.nvidia.com/)         | [Tegra (e.g., Tegra X1)](https://developer.nvidia.com/content/tegra-x1)              | [NVIDIA Shield TV](https://www.nvidia.com/en-us/shield/shield-tv/), [Nintendo Switch](https://www.nintendo.com/switch/)                                                      | CPU, GPU, NNAPI          |
+| Vendor                                    | Product Lines                                                                        | Popular Devices                                                                                                                                                                | Delegates Supported      |
+| ----------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| [Qualcomm](https://www.qualcomm.com/)     | [Snapdragon (e.g., 800 series)](https://www.qualcomm.com/snapdragon/overview)        | [Samsung Galaxy S21](https://www.samsung.com/global/galaxy/galaxy-s21-5g/), [OnePlus 9](https://www.oneplus.com/9), [Google Pixel 6](https://store.google.com/product/pixel_6) | CPU, GPU, Hexagon, NNAPI |
+| [Samsung](https://www.samsung.com/)       | [Exynos (e.g., Exynos 2100)](https://www.samsung.com/semiconductor/minisite/exynos/) | [Samsung Galaxy S21 (Global version)](https://www.samsung.com/global/galaxy/galaxy-s21-5g/)                                                                                    | CPU, GPU, NNAPI          |
+| [MediaTek](https://i.mediatek.com/)       | [Dimensity (e.g., Dimensity 1200)](https://i.mediatek.com/dimensity-1200)            | [Realme GT](https://www.realme.com/global/realme-gt), [Xiaomi Redmi Note](https://www.mi.com/global/phone/redmi/note-list)                                                     | CPU, GPU, NNAPI          |
+| [HiSilicon](https://www.hisilicon.com/cn) | [Kirin (e.g., Kirin 990)](https://www.hisilicon.com/en/products/Kirin)               | [Huawei P40 Pro](https://consumer.huawei.com/en/phones/), [Huawei Mate 30 Pro](https://consumer.huawei.com/en/phones/)                                                         | CPU, GPU, NNAPI          |
+| [NVIDIA](https://www.nvidia.com/)         | [Tegra (e.g., Tegra X1)](https://developer.nvidia.com/content/tegra-x1)              | [NVIDIA Shield TV](https://www.nvidia.com/en-us/shield/shield-tv/), [Nintendo Switch](https://www.nintendo.com/switch/)                                                        | CPU, GPU, NNAPI          |
 
 Please note that the list of devices mentioned is not exhaustive and may vary depending on the specific chipsets and device models. Always test your models on your target devices to ensure compatibility and optimal performance.
 
@@ -87,7 +87,7 @@ To get started with the Ultralytics Android App, follow these steps:
 
 1. Download the Ultralytics App from the [Google Play Store](https://play.google.com/store/apps/details?id=com.ultralytics.ultralytics_app).
 
-2. Launch the app on your Android device and sign in with your Ultralytics account. If you don't have an account yet, create one at <https://hub.ultralytics.com/>.
+2. Launch the app on your Android device and sign in with your Ultralytics account. If you don't have an account yet, create one [here](https://hub.ultralytics.com/).
 
 3. Once signed in, you will see a list of your trained YOLO models. Select a model to use for object detection.
 

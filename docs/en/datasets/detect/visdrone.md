@@ -10,13 +10,13 @@ The [VisDrone Dataset](https://github.com/VisDrone/VisDrone-Dataset) is a large-
 
 <p align="center">
   <br>
-  <iframe loading="lazy" width="720" height="405" src="https://www.youtube.com/embed/9ymyH4H1fG4"
+  <iframe loading="lazy" width="720" height="405" src="https://www.youtube.com/embed/28JV4rbzklM"
     title="YouTube video player" frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
     allowfullscreen>
   </iframe>
   <br>
-  <strong>Watch:</strong> How to Train Ultralytics YOLO11 on the VisDrone Dataset | Aerial Detection | Complete Tutorial 🚀
+  <strong>Watch:</strong> How to Train Ultralytics YOLO Models on the VisDrone Dataset for Drone Image Analysis
 </p>
 
 VisDrone is composed of 288 video clips with 261,908 frames and 10,209 static images, captured by various drone-mounted cameras. The dataset covers a wide range of aspects, including location (14 different cities across China), environment (urban and rural), objects (pedestrians, vehicles, bicycles, etc.), and density (sparse and crowded scenes). The dataset was collected using various drone platforms under different scenarios and weather and lighting conditions. These frames are manually annotated with over 2.6 million bounding boxes of targets such as pedestrians, cars, bicycles, and tricycles. Attributes like scene visibility, object class, and occlusion are also provided for better data utilization.
@@ -28,7 +28,7 @@ The VisDrone dataset is organized into five main subsets, each focusing on a spe
 1. **Task 1**: Object detection in images
 2. **Task 2**: Object detection in videos
 3. **Task 3**: Single-object tracking
-4. **Task 4**: [Multi-object tracking](../index.md#multi-object-tracking)
+4. **Task 4**: Multi-object tracking
 5. **Task 5**: Crowd counting
 
 ## Applications
@@ -76,7 +76,7 @@ The VisDrone dataset contains a diverse set of images and videos captured by dro
 
 ![Dataset sample image](https://github.com/ultralytics/docs/releases/download/0/visdrone-object-detection-sample.avif)
 
-- **Task 1**: [Object detection](https://www.ultralytics.com/glossary/object-detection) in images - This image demonstrates an example of object detection in images, where objects are annotated with [bounding boxes](https://www.ultralytics.com/glossary/bounding-box). The dataset provides a wide variety of images taken from different locations, environments, and densities to facilitate the development of models for this task.
+- **Task 1**: [Object detection](https://www.ultralytics.com/glossary/object-detection) in images - This image demonstrates an example of object detection in images, where objects are annotated with bounding boxes. The dataset provides a wide variety of images taken from different locations, environments, and densities to facilitate the development of models for this task.
 
 The example showcases the variety and complexity of the data in the VisDrone dataset and highlights the importance of high-quality sensor data for drone-based computer vision tasks.
 

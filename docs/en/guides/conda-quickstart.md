@@ -28,7 +28,7 @@ This guide provides a comprehensive introduction to setting up a Conda environme
 
 ## Prerequisites
 
-- You should have Anaconda or Miniconda installed on your system. If not, download and install it from [Anaconda](https://www.anaconda.com/) or [Miniconda](https://www.anaconda.com/docs/main).
+- You should have Anaconda or Miniconda installed on your system. If not, download and install it from [Anaconda](https://www.anaconda.com/) or [Miniconda](https://docs.conda.io/projects/miniconda/en/latest/).
 
 ---
 
@@ -98,8 +98,8 @@ Run the image:
 
 ```bash
 # Run the Ultralytics image in a container with GPU support
-sudo docker run -it --ipc=host --runtime=nvidia --gpus all $t            # all GPUs
-sudo docker run -it --ipc=host --runtime=nvidia --gpus '"device=2,3"' $t # specify GPUs
+sudo docker run -it --ipc=host --gpus all $t  # all GPUs
+sudo docker run -it --ipc=host --gpus '"device=2,3"' $t  # specify GPUs
 ```
 
 ## Speeding Up Installation with Libmamba
@@ -126,7 +126,7 @@ And that's it! Your Conda installation will now use `libmamba` as the solver, wh
 
 ---
 
-You have successfully set up a Conda environment, installed the Ultralytics package, and are now ready to explore its features. For more advanced tutorials and examples, see the [Ultralytics documentation](../index.md).
+Congratulations! You have successfully set up a Conda environment, installed the Ultralytics package, and are now ready to explore its rich functionalities. Feel free to dive deeper into the [Ultralytics documentation](../index.md) for more advanced tutorials and examples.
 
 ## FAQ
 
@@ -170,8 +170,7 @@ Using Ultralytics Docker images ensures a consistent and reproducible environmen
 
 ```bash
 sudo docker pull ultralytics/ultralytics:latest-conda
-sudo docker run -it --ipc=host --runtime=nvidia --gpus all ultralytics/ultralytics:latest-conda            # all GPUs
-sudo docker run -it --ipc=host --runtime=nvidia --gpus '"device=2,3"' ultralytics/ultralytics:latest-conda # specify GPUs
+sudo docker run -it --ipc=host --gpus all ultralytics/ultralytics:latest-conda
 ```
 
 This approach is ideal for deploying applications in production or running complex workflows without manual configuration. Learn more about [Ultralytics Conda Docker Image](../quickstart.md).
@@ -190,4 +189,4 @@ Then configure Conda to use `libmamba` as the solver:
 conda config --set solver libmamba
 ```
 
-This setup provides faster and more efficient package management. For more tips on optimizing your environment, read about [libmamba installation](https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community).
+This setup provides faster and more efficient package management. For more tips on optimizing your environment, read about [libmamba installation](../quickstart.md).

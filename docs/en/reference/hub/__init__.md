@@ -5,36 +5,36 @@ keywords: Ultralytics HUB API, login, logout, reset model, export model, check d
 
 # Reference for `ultralytics/hub/__init__.py`
 
-!!! success "Improvements"
+!!! note
 
-    This page is sourced from [https://github.com/ultralytics/ultralytics/blob/main/ultralytics/hub/\_\_init\_\_.py](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/hub/__init__.py). Have an improvement or example to add? Open a [Pull Request](https://docs.ultralytics.com/help/contributing/) — thank you! 🙏
+    This file is available at [https://github.com/ultralytics/ultralytics/blob/main/ultralytics/hub/\_\_init\_\_.py](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/hub/__init__.py). If you spot a problem please help fix it by [contributing](https://docs.ultralytics.com/help/contributing/) a [Pull Request](https://github.com/ultralytics/ultralytics/edit/main/ultralytics/hub/__init__.py) 🛠️. Thank you 🙏!
 
 <br>
 
-## ::: ultralytics.hub.__init__.login
+## ::: ultralytics.hub.login
 
 <br><br><hr><br>
 
-## ::: ultralytics.hub.__init__.logout
+## ::: ultralytics.hub.logout
 
 <br><br><hr><br>
 
-## ::: ultralytics.hub.__init__.reset_model
+## ::: ultralytics.hub.reset_model
 
 <br><br><hr><br>
 
-## ::: ultralytics.hub.__init__.export_fmts_hub
+## ::: ultralytics.hub.export_fmts_hub
 
 <br><br><hr><br>
 
-## ::: ultralytics.hub.__init__.export_model
+## ::: ultralytics.hub.export_model
 
 <br><br><hr><br>
 
-## ::: ultralytics.hub.__init__.get_export
+## ::: ultralytics.hub.get_export
 
 <br><br><hr><br>
 
-## ::: ultralytics.hub.__init__.check_dataset
+## ::: ultralytics.hub.check_dataset
 
 <br><br>

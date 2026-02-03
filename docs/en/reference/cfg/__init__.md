@@ -5,64 +5,64 @@ keywords: Ultralytics, YOLO, configuration, cfg2dict, get_cfg, check_cfg, save_d
 
 # Reference for `ultralytics/cfg/__init__.py`
 
-!!! success "Improvements"
+!!! note
 
-    This page is sourced from [https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/\_\_init\_\_.py](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/__init__.py). Have an improvement or example to add? Open a [Pull Request](https://docs.ultralytics.com/help/contributing/) — thank you! 🙏
+    This file is available at [https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/\_\_init\_\_.py](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/__init__.py). If you spot a problem please help fix it by [contributing](https://docs.ultralytics.com/help/contributing/) a [Pull Request](https://github.com/ultralytics/ultralytics/edit/main/ultralytics/cfg/__init__.py) 🛠️. Thank you 🙏!
 
 <br>
 
-## ::: ultralytics.cfg.__init__.cfg2dict
+## ::: ultralytics.cfg.cfg2dict
 
 <br><br><hr><br>
 
-## ::: ultralytics.cfg.__init__.get_cfg
+## ::: ultralytics.cfg.get_cfg
 
 <br><br><hr><br>
 
-## ::: ultralytics.cfg.__init__.check_cfg
+## ::: ultralytics.cfg.check_cfg
 
 <br><br><hr><br>
 
-## ::: ultralytics.cfg.__init__.get_save_dir
+## ::: ultralytics.cfg.get_save_dir
 
 <br><br><hr><br>
 
-## ::: ultralytics.cfg.__init__._handle_deprecation
+## ::: ultralytics.cfg._handle_deprecation
 
 <br><br><hr><br>
 
-## ::: ultralytics.cfg.__init__.check_dict_alignment
+## ::: ultralytics.cfg.check_dict_alignment
 
 <br><br><hr><br>
 
-## ::: ultralytics.cfg.__init__.merge_equals_args
+## ::: ultralytics.cfg.merge_equals_args
 
 <br><br><hr><br>
 
-## ::: ultralytics.cfg.__init__.handle_yolo_hub
+## ::: ultralytics.cfg.handle_yolo_hub
 
 <br><br><hr><br>
 
-## ::: ultralytics.cfg.__init__.handle_yolo_settings
+## ::: ultralytics.cfg.handle_yolo_settings
 
 <br><br><hr><br>
 
-## ::: ultralytics.cfg.__init__.handle_yolo_solutions
+## ::: ultralytics.cfg.handle_yolo_solutions
 
 <br><br><hr><br>
 
-## ::: ultralytics.cfg.__init__.parse_key_value_pair
+## ::: ultralytics.cfg.parse_key_value_pair
 
 <br><br><hr><br>
 
-## ::: ultralytics.cfg.__init__.smart_value
+## ::: ultralytics.cfg.smart_value
 
 <br><br><hr><br>
 
-## ::: ultralytics.cfg.__init__.entrypoint
+## ::: ultralytics.cfg.entrypoint
 
 <br><br><hr><br>
 
-## ::: ultralytics.cfg.__init__.copy_default_cfg
+## ::: ultralytics.cfg.copy_default_cfg
 
 <br><br>

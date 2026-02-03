@@ -8,13 +8,7 @@ keywords: COCO8-Seg, Ultralytics, segmentation dataset, YOLO11, COCO 2017, model
 
 ## Introduction
 
-[Ultralytics](https://www.ultralytics.com/) COCO8-Seg is a small but versatile [instance segmentation](https://www.ultralytics.com/glossary/instance-segmentation) dataset composed of the first 8 images of the COCO train 2017 set, 4 for training and 4 for validation. This dataset is ideal for testing and debugging segmentation models, or for experimenting with new detection approaches. With 8 images, it is small enough to be easily manageable, yet diverse enough to test training pipelines for errors and act as a sanity check before training larger datasets.
-
-## Dataset Structure
-
-- **Images**: 8 total (4 train / 4 val).
-- **Classes**: 80 COCO categories.
-- **Labels**: YOLO-format polygons stored under `labels/{train,val}` matching each image file.
+[Ultralytics](https://www.ultralytics.com/) COCO8-Seg is a small, but versatile [instance segmentation](https://www.ultralytics.com/glossary/instance-segmentation) dataset composed of the first 8 images of the COCO train 2017 set, 4 for training and 4 for validation. This dataset is ideal for testing and debugging segmentation models, or for experimenting with new detection approaches. With 8 images, it is small enough to be easily manageable, yet diverse enough to test training pipelines for errors and act as a sanity check before training larger datasets.
 
 This dataset is intended for use with Ultralytics [HUB](https://hub.ultralytics.com/) and [YOLO11](https://github.com/ultralytics/ultralytics).
 
@@ -119,11 +113,11 @@ For a thorough explanation of available arguments and configuration options, you
 
 ### Why is the COCO8-Seg dataset important for model development and debugging?
 
-The **COCO8-Seg dataset** offers a compact yet diverse set of 8 images, making it perfect for quickly testing and debugging segmentation models or experimenting with new detection techniques. Its small size allows for fast sanity checks and early pipeline validation, helping identify issues before scaling to larger datasets. Learn more about supported dataset formats in the [Ultralytics segmentation dataset guide](https://docs.ultralytics.com/datasets/segment/).
+The **COCO8-Seg dataset** is ideal for its manageability and diversity within a small size. It consists of only 8 images, providing a quick way to test and debug segmentation models or new detection approaches without the overhead of larger datasets. This makes it an efficient tool for sanity checks and pipeline error identification before committing to extensive training on large datasets. Learn more about dataset formats [here](https://docs.ultralytics.com/datasets/segment/).
 
 ### Where can I find the YAML configuration file for the COCO8-Seg dataset?
 
-The YAML configuration file for the **COCO8-Seg dataset** is available in the Ultralytics repository. You can access the file directly at <https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco8-seg.yaml>. The YAML file includes essential information about dataset paths, classes, and configuration settings required for model training and validation.
+The YAML configuration file for the **COCO8-Seg dataset** is available in the Ultralytics repository. You can access the file directly [here](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco8-seg.yaml). The YAML file includes essential information about dataset paths, classes, and configuration settings required for model training and validation.
 
 ### What are some benefits of using mosaicing during training with the COCO8-Seg dataset?
 

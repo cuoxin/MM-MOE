@@ -33,7 +33,7 @@ YOLO11 is the latest iteration in the [Ultralytics](https://www.ultralytics.com/
 
 ## Key Features
 
-- **Enhanced Feature Extraction:** YOLO11 employs an improved [backbone](https://www.ultralytics.com/glossary/backbone) and neck architecture, which enhances [feature extraction](https://www.ultralytics.com/glossary/feature-extraction) capabilities for more precise object detection and complex task performance.
+- **Enhanced Feature Extraction:** YOLO11 employs an improved backbone and neck architecture, which enhances [feature extraction](https://www.ultralytics.com/glossary/feature-extraction) capabilities for more precise object detection and complex task performance.
 - **Optimized for Efficiency and Speed:** YOLO11 introduces refined architectural designs and optimized training pipelines, delivering faster processing speeds and maintaining an optimal balance between accuracy and performance.
 - **Greater Accuracy with Fewer Parameters:** With advancements in model design, YOLO11m achieves a higher [mean Average Precision](https://www.ultralytics.com/glossary/mean-average-precision-map) (mAP) on the COCO dataset while using 22% fewer parameters than YOLOv8m, making it computationally efficient without compromising accuracy.
 - **Adaptability Across Environments:** YOLO11 can be seamlessly deployed across various environments, including edge devices, cloud platforms, and systems supporting NVIDIA GPUs, ensuring maximum flexibility.
@@ -41,7 +41,7 @@ YOLO11 is the latest iteration in the [Ultralytics](https://www.ultralytics.com/
 
 ## Supported Tasks and Modes
 
-YOLO11 builds upon the versatile model range established by earlier Ultralytics YOLO releases, offering enhanced support across various computer vision tasks:
+YOLO11 builds upon the versatile model range introduced in YOLOv8, offering enhanced support across various computer vision tasks:
 
 | Model       | Filenames                                                                                 | Task                                         | Inference | Validation | Training | Export |
 | ----------- | ----------------------------------------------------------------------------------------- | -------------------------------------------- | --------- | ---------- | -------- | ------ |
@@ -55,42 +55,52 @@ This table provides an overview of the YOLO11 model variants, showcasing their a
 
 ## Performance Metrics
 
-<script async src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script async src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script defer src="../../javascript/benchmark.js"></script>
 
 <canvas id="modelComparisonChart" width="1024" height="400" active-models='["YOLO11"]'></canvas>
 
-!!! tip "Performance"
+!!! performance
 
     === "Detection (COCO)"
 
-        See [Detection Docs](../tasks/detect.md) for usage examples with these models trained on [COCO](../datasets/detect/coco.md), which include 80 pretrained classes.
+        See [Detection Docs](../tasks/detect.md) for usage examples with these models trained on [COCO](../datasets/detect/coco.md), which include 80 pre-trained classes.
 
-        --8<-- "docs/macros/yolo-det-perf.md"
+{% filter indent(width=8, first=False, blank=True) %}
+{% include "macros/yolo-det-perf.md" %}
+{% endfilter %}
 
     === "Segmentation (COCO)"
 
-        See [Segmentation Docs](../tasks/segment.md) for usage examples with these models trained on [COCO](../datasets/segment/coco.md), which include 80 pretrained classes.
+        See [Segmentation Docs](../tasks/segment.md) for usage examples with these models trained on [COCO](../datasets/segment/coco.md), which include 80 pre-trained classes.
 
-        --8<-- "docs/macros/yolo-seg-perf.md"
+{% filter indent(width=8, first=False, blank=True) %}
+{% include "macros/yolo-seg-perf.md" %}
+{% endfilter %}
 
     === "Classification (ImageNet)"
 
-        See [Classification Docs](../tasks/classify.md) for usage examples with these models trained on [ImageNet](../datasets/classify/imagenet.md), which include 1000 pretrained classes.
+        See [Classification Docs](../tasks/classify.md) for usage examples with these models trained on [ImageNet](../datasets/classify/imagenet.md), which include 1000 pre-trained classes.
 
-        --8<-- "docs/macros/yolo-cls-perf.md"
+{% filter indent(width=8, first=False, blank=True) %}
+{% include "macros/yolo-cls-perf.md" %}
+{% endfilter %}
 
     === "Pose (COCO)"
 
-        See [Pose Estimation Docs](../tasks/pose.md) for usage examples with these models trained on [COCO](../datasets/pose/coco.md), which include 1 pretrained class, 'person'.
+        See [Pose Estimation Docs](../tasks/pose.md) for usage examples with these models trained on [COCO](../datasets/pose/coco.md), which include 1 pre-trained class, 'person'.
 
-        --8<-- "docs/macros/yolo-pose-perf.md"
+{% filter indent(width=8, first=False, blank=True) %}
+{% include "macros/yolo-pose-perf.md" %}
+{% endfilter %}
 
     === "OBB (DOTAv1)"
 
-        See [Oriented Detection Docs](../tasks/obb.md) for usage examples with these models trained on [DOTAv1](../datasets/obb/dota-v2.md#dota-v10), which include 15 pretrained classes.
+        See [Oriented Detection Docs](../tasks/obb.md) for usage examples with these models trained on [DOTAv1](../datasets/obb/dota-v2.md#dota-v10), which include 15 pre-trained classes.
 
-        --8<-- "docs/macros/yolo-obb-perf.md"
+{% filter indent(width=8, first=False, blank=True) %}
+{% include "macros/yolo-obb-perf.md" %}
+{% endfilter %}
 
 ## Usage Examples
 
@@ -129,7 +139,7 @@ Note that the example below is for YOLO11 [Detect](../tasks/detect.md) models fo
         yolo predict model=yolo11n.pt source=path/to/bus.jpg
         ```
 
-## Citations and Acknowledgments
+## Citations and Acknowledgements
 
 !!! tip "Ultralytics YOLO11 Publication"
 
@@ -148,7 +158,7 @@ If you use YOLO11 or any other software from this repository in your work, pleas
           version = {11.0.0},
           year = {2024},
           url = {https://github.com/ultralytics/ultralytics},
-          orcid = {0000-0001-5950-6979, 0000-0003-3783-7069},
+          orcid = {0000-0001-5950-6979, 0000-0002-7603-6750, 0000-0003-3783-7069},
           license = {AGPL-3.0}
         }
         ```
@@ -171,7 +181,7 @@ Ultralytics YOLO11 introduces several significant advancements over its predeces
 
 Training a YOLO11 model for object detection can be done using Python or CLI commands. Below are examples for both methods:
 
-!!! example
+!!! Example
 
     === "Python"
 

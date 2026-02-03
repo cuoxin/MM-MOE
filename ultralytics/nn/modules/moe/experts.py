@@ -1,175 +1,66 @@
-# 🐧Please note that this file has been modified by Tencent on 2026/01/16. All Tencent Modifications are Copyright (C) 2026 Tencent.
-"""Expert modules for Mixture-of-Experts models"""
 import torch
 import torch.nn as nn
-import math
-from .utils import FlopsUtils, get_safe_groups
+from ..block import Conv, GhostConv # 复用 YOLO 的基础模块
 
-
-# ==========================================
-# Optimized expert modules
-# ==========================================
-class OptimizedSimpleExpert(nn.Module):
-    """Use GroupNorm instead of BatchNorm to improve stability for small batches."""
-
-    def __init__(self, in_channels, out_channels, expand_ratio=2, num_groups=8):
+class DualModalExpertContainer(nn.Module):
+    def __init__(self, in_channels, out_channels):
         super().__init__()
-        hidden_dim = in_channels * expand_ratio
-        self.conv = nn.Sequential(
-            nn.Conv2d(in_channels, hidden_dim, 1, bias=False),
-            nn.GroupNorm(get_safe_groups(hidden_dim, num_groups), hidden_dim),
-            nn.SiLU(inplace=True),
-            nn.Conv2d(hidden_dim, out_channels, 1, bias=False),
-            nn.GroupNorm(get_safe_groups(out_channels, num_groups), out_channels)
-        )
-        self.hidden_dim = hidden_dim
+        self.c_split = in_channels // 2
 
-    def forward(self, x):
-        return self.conv(x)
+        # 定义专家库
+        self.expert_map = nn.ModuleList([
+            # Expert 0: RGB 细节专家 (小核，专注前半段通道)
+            nn.Sequential(Conv(self.c_split, out_channels, k=3, s=1)),
 
-    def compute_flops(self, input_shape):
-        B, C, H, W = input_shape
-        flops = FlopsUtils.count_conv2d(self.conv[0], (1, C, H, W))
-        flops += FlopsUtils.count_conv2d(self.conv[3], (1, self.hidden_dim, H, W))
-        return flops
+            # Expert 1: IR 轮廓专家 (大核 Depthwise，专注后半段通道)
+            nn.Sequential(
+                nn.Conv2d(self.c_split, self.c_split, 5, 1, 2, groups=self.c_split, bias=False),
+                nn.Conv2d(self.c_split, out_channels, 1, bias=False),
+                nn.BatchNorm2d(out_channels),
+                nn.SiLU()
+            ),
 
+            # Expert 2: 融合专家 (看全部通道)
+            GhostConv(in_channels, out_channels, k=3, s=1),
 
-class FusedGhostExpert(nn.Module):
-    """Fused Ghost expert that reduces memory traffic by combining operations."""
-
-    def __init__(self, in_channels, out_channels, kernel_size=3, ratio=2, num_groups=8):
-        super().__init__()
-        self.out_channels = out_channels
-        init_channels = math.ceil(out_channels / ratio)
-        new_channels = init_channels * (ratio - 1)
-
-        # Use GroupNorm to improve stability
-        self.primary_conv = nn.Sequential(
-            nn.Conv2d(in_channels, init_channels, kernel_size, padding=kernel_size // 2, bias=False),
-            nn.GroupNorm(min(num_groups, init_channels), init_channels),
-            nn.SiLU(inplace=True)
-        )
-        self.cheap_operation = nn.Sequential(
-            nn.Conv2d(init_channels, new_channels, 3, padding=1, groups=init_channels, bias=False),
-            nn.GroupNorm(min(num_groups, new_channels), new_channels),
-            nn.SiLU(inplace=True)
-        )
-        self.init_channels = init_channels
-
-    def forward(self, x):
-        x1 = self.primary_conv(x)
-        x2 = self.cheap_operation(x1)
-        out = torch.cat([x1, x2], dim=1)
-        return out[:, :self.out_channels, :, :]
-
-    def compute_flops(self, input_shape):
-        B, C, H, W = input_shape
-        flops = FlopsUtils.count_conv2d(self.primary_conv[0], (1, C, H, W))
-        flops += FlopsUtils.count_conv2d(self.cheap_operation[0], (1, self.init_channels, H, W))
-        return flops
-
-
-class SimpleExpert(nn.Module):
-    def __init__(self, in_channels, out_channels, expand_ratio=2):
-        super().__init__()
-        hidden_dim = int(in_channels * expand_ratio)
-        self.conv = nn.Sequential(
-            nn.Conv2d(in_channels, hidden_dim, 1, bias=False),
-            nn.BatchNorm2d(hidden_dim),
-            nn.SiLU(inplace=True),
-            nn.Conv2d(hidden_dim, out_channels, 1, bias=False),
-            nn.BatchNorm2d(out_channels)
-        )
-
-    def forward(self, x): return self.conv(x)
-
-    def compute_flops(self, input_shape): return FlopsUtils.count_conv2d(self.conv, input_shape)
-
-
-class GhostExpert(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, ratio=2):
-        super().__init__()
-        self.out_channels = out_channels
-        init_channels = math.ceil(out_channels / ratio)
-        new_channels = init_channels * (ratio - 1)
-
-        self.primary_conv = nn.Sequential(
-            nn.Conv2d(in_channels, init_channels, kernel_size, padding=kernel_size // 2, bias=False),
-            nn.BatchNorm2d(init_channels),
-            nn.SiLU(inplace=True)
-        )
-        self.cheap_operation = nn.Sequential(
-            nn.Conv2d(init_channels, new_channels, 3, padding=1, groups=init_channels, bias=False),
-            nn.BatchNorm2d(new_channels),
-            nn.SiLU(inplace=True)
-        )
-
-    def forward(self, x):
-        x1 = self.primary_conv(x)
-        x2 = self.cheap_operation(x1)
-        return torch.cat([x1, x2], dim=1)[:, :self.out_channels, :, :]
-
-    def compute_flops(self, input_shape):
-        B, C, H, W = input_shape
-        flops = FlopsUtils.count_conv2d(self.primary_conv, input_shape)
-        # Compute input shape to cheap op (output of primary conv)
-        p_out = self.primary_conv[0].out_channels
-        flops += FlopsUtils.count_conv2d(self.cheap_operation, (B, p_out, H, W))
-        return flops
-
-
-class InvertedResidualExpert(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, expand_ratio=2):
-        super().__init__()
-        hidden_dim = int(in_channels * expand_ratio)
-        self.use_expand = expand_ratio != 1
-        layers = []
-        if self.use_expand:
-            layers.extend([
-                nn.Conv2d(in_channels, hidden_dim, 1, bias=False),
-                nn.BatchNorm2d(hidden_dim),
-                nn.SiLU(inplace=True)
-            ])
-        layers.extend([
-            nn.Conv2d(hidden_dim, hidden_dim, kernel_size, padding=(kernel_size - 1) // 2, groups=hidden_dim,
-                      bias=False),
-            nn.BatchNorm2d(hidden_dim),
-            nn.SiLU(inplace=True),
-            nn.Conv2d(hidden_dim, out_channels, 1, bias=False),
-            nn.BatchNorm2d(out_channels)
+            # Expert 3: 背景/省电专家 (不做任何操作)
+            nn.Identity()
         ])
-        self.conv = nn.Sequential(*layers)
 
-    def forward(self, x): return self.conv(x)
+    def forward(self, x, weights, indices):
+        b, c, h, w = x.shape
+        out = torch.zeros_like(x)
 
-    def compute_flops(self, input_shape): return FlopsUtils.count_conv2d(self.conv, input_shape)
+        # 预先拆分，减少索引开销
+        x_rgb = x[:, :self.c_split, :, :]
+        x_ir = x[:, self.c_split:, :, :]
 
+        # 遍历 Top-K
+        for k in range(indices.shape[1]):
+            idxs = indices[:, k] # [Batch]
+            w_val = weights[:, k] # [Batch, C]
 
-class DepthwiseSeparableConv(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1):
-        super(DepthwiseSeparableConv, self).__init__()
-        padding = (kernel_size - 1) // 2
-        self.depthwise = nn.Conv2d(in_channels, in_channels, kernel_size,
-                                   stride=stride, padding=padding, groups=in_channels, bias=False)
-        self.pointwise = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
-        self.bn = nn.BatchNorm2d(out_channels)
-        self.act = nn.SiLU(inplace=True)
+            # === Expert 0: RGB ===
+            mask = (idxs == 0)
+            if mask.any():
+                out[mask] += self.expert_map[0](x_rgb[mask]) * w_val[mask].view(-1, c, 1, 1)
 
-    def forward(self, x):
-        x = self.depthwise(x)
-        x = self.pointwise(x)
-        x = self.bn(x)
-        x = self.act(x)
-        return x
+            # === Expert 1: IR ===
+            mask = (idxs == 1)
+            if mask.any():
+                out[mask] += self.expert_map[1](x_ir[mask]) * w_val[mask].view(-1, c, 1, 1)
 
+            # === Expert 2: Fusion ===
+            mask = (idxs == 2)
+            if mask.any():
+                out[mask] += self.expert_map[2](x[mask]) * w_val[mask].view(-1, c, 1, 1)
 
-class EfficientExpertGroup(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1):
-        super(EfficientExpertGroup, self).__init__()
-        self.conv = DepthwiseSeparableConv(in_channels, out_channels, kernel_size, stride)
+            # === Expert 3: Identity (Skip) ===
+            # 直接跳过计算，这里不加任何东西，或者做恒等映射
+            # 如果是残差结构，这里 return 0 即可，外层会有 x + out
+            # 这里为了保持特征流不断，如果是纯背景，我们假设它保留原特征（或被抑制）
+            mask = (idxs == 3)
+            if mask.any():
+                out[mask] += x[mask] * 0.1 # 抑制背景
 
-    def forward(self, x):
-        if not hasattr(self, "conv"):
-            out_c = x.shape[1]
-            self.conv = DepthwiseSeparableConv(x.shape[1], out_c, 3, 1)
-        return self.conv(x)
+        return out

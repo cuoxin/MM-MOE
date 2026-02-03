@@ -10,17 +10,17 @@ keywords: Ultralytics, YOLO11, model prediction, inference, predict mode, real-t
 
 ## Introduction
 
-In the world of [machine learning](https://www.ultralytics.com/glossary/machine-learning-ml) and [computer vision](https://www.ultralytics.com/glossary/computer-vision-cv), the process of making sense of visual data is often called inference or prediction. Ultralytics YOLO11 offers a powerful feature known as **predict mode**, tailored for high-performance, real-time inference across a wide range of data sources.
+In the world of [machine learning](https://www.ultralytics.com/glossary/machine-learning-ml) and [computer vision](https://www.ultralytics.com/glossary/computer-vision-cv), the process of making sense out of visual data is called 'inference' or 'prediction'. Ultralytics YOLO11 offers a powerful feature known as **predict mode** that is tailored for high-performance, real-time inference on a wide range of data sources.
 
 <p align="center">
   <br>
-  <iframe loading="lazy" width="720" height="405" src="https://www.youtube.com/embed/YKbBXWBJloY"
+  <iframe loading="lazy" width="720" height="405" src="https://www.youtube.com/embed/QtsI0TnwDZs?si=ljesw75cMO2Eas14"
     title="YouTube video player" frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
     allowfullscreen>
   </iframe>
   <br>
-  <strong>Watch:</strong> How to Extract Results from Ultralytics YOLO11 Tasks for Custom Projects 🚀
+  <strong>Watch:</strong> How to Extract the Outputs from Ultralytics YOLO Model for Custom Projects.
 </p>
 
 ## Real-world Applications
@@ -34,7 +34,7 @@ In the world of [machine learning](https://www.ultralytics.com/glossary/machine-
 
 Here's why you should consider YOLO11's predict mode for your various inference needs:
 
-- **Versatility:** Capable of running inference on images, videos, and even live streams.
+- **Versatility:** Capable of making inferences on images, videos, and even live streams.
 - **Performance:** Engineered for real-time, high-speed processing without sacrificing [accuracy](https://www.ultralytics.com/glossary/accuracy).
 - **Ease of Use:** Intuitive Python and CLI interfaces for rapid deployment and testing.
 - **Highly Customizable:** Various settings and parameters to tune the model's inference behavior according to your specific requirements.
@@ -45,10 +45,10 @@ YOLO11's predict mode is designed to be robust and versatile, featuring:
 
 - **Multiple Data Source Compatibility:** Whether your data is in the form of individual images, a collection of images, video files, or real-time video streams, predict mode has you covered.
 - **Streaming Mode:** Use the streaming feature to generate a memory-efficient generator of `Results` objects. Enable this by setting `stream=True` in the predictor's call method.
-- **Batch Processing:** Process multiple images or video frames in a single batch, further reducing total inference time.
+- **Batch Processing:** The ability to process multiple images or video frames in a single batch, further speeding up inference time.
 - **Integration Friendly:** Easily integrate with existing data pipelines and other software components, thanks to its flexible API.
 
-Ultralytics YOLO models return either a Python list of `Results` objects or a memory-efficient generator of `Results` objects when `stream=True` is passed to the model during inference:
+Ultralytics YOLO models return either a Python list of `Results` objects, or a memory-efficient Python generator of `Results` objects when `stream=True` is passed to the model during inference:
 
 !!! example "Predict"
 
@@ -104,23 +104,23 @@ YOLO11 can process different types of input sources for inference, as shown in t
 
     Use `stream=True` for processing long videos or large datasets to efficiently manage memory. When `stream=False`, the results for all frames or data points are stored in memory, which can quickly add up and cause out-of-memory errors for large inputs. In contrast, `stream=True` utilizes a generator, which only keeps the results of the current frame or data point in memory, significantly reducing memory consumption and preventing out-of-memory issues.
 
-| Source                                                | Example                                    | Type            | Notes                                                                                        |
-| ----------------------------------------------------- | ------------------------------------------ | --------------- | -------------------------------------------------------------------------------------------- |
-| image                                                 | `'image.jpg'`                              | `str` or `Path` | Single image file.                                                                           |
-| URL                                                   | `'https://ultralytics.com/images/bus.jpg'` | `str`           | URL to an image.                                                                             |
-| screenshot                                            | `'screen'`                                 | `str`           | Capture a screenshot.                                                                        |
-| PIL                                                   | `Image.open('image.jpg')`                  | `PIL.Image`     | HWC format with RGB channels.                                                                |
-| [OpenCV](https://www.ultralytics.com/glossary/opencv) | `cv2.imread('image.jpg')`                  | `np.ndarray`    | HWC format with BGR channels `uint8 (0-255)`.                                                |
-| numpy                                                 | `np.zeros((640,1280,3))`                   | `np.ndarray`    | HWC format with BGR channels `uint8 (0-255)`.                                                |
-| torch                                                 | `torch.zeros(16,3,320,640)`                | `torch.Tensor`  | BCHW format with RGB channels `float32 (0.0-1.0)`.                                           |
-| CSV                                                   | `'sources.csv'`                            | `str` or `Path` | CSV file containing paths to images, videos, or directories.                                 |
-| video ✅                                              | `'video.mp4'`                              | `str` or `Path` | Video file in formats like MP4, AVI, etc.                                                    |
-| directory ✅                                          | `'path/'`                                  | `str` or `Path` | Path to a directory containing images or videos.                                             |
-| glob ✅                                               | `'path/*.jpg'`                             | `str`           | Glob pattern to match multiple files. Use the `*` character as a wildcard.                   |
-| YouTube ✅                                            | `'https://youtu.be/LNwODJXcvt4'`           | `str`           | URL to a YouTube video.                                                                      |
-| stream ✅                                             | `'rtsp://example.com/media.mp4'`           | `str`           | URL for streaming protocols such as RTSP, RTMP, TCP, or an IP address.                       |
-| multi-stream ✅                                       | `'list.streams'`                           | `str` or `Path` | `*.streams` text file with one stream URL per row, i.e., 8 streams will run at batch-size 8. |
-| webcam ✅                                             | `0`                                        | `int`           | Index of the connected camera device to run inference on.                                    |
+| Source                                                | Example                                    | Type            | Notes                                                                                       |
+| ----------------------------------------------------- | ------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------- |
+| image                                                 | `'image.jpg'`                              | `str` or `Path` | Single image file.                                                                          |
+| URL                                                   | `'https://ultralytics.com/images/bus.jpg'` | `str`           | URL to an image.                                                                            |
+| screenshot                                            | `'screen'`                                 | `str`           | Capture a screenshot.                                                                       |
+| PIL                                                   | `Image.open('image.jpg')`                  | `PIL.Image`     | HWC format with RGB channels.                                                               |
+| [OpenCV](https://www.ultralytics.com/glossary/opencv) | `cv2.imread('image.jpg')`                  | `np.ndarray`    | HWC format with BGR channels `uint8 (0-255)`.                                               |
+| numpy                                                 | `np.zeros((640,1280,3))`                   | `np.ndarray`    | HWC format with BGR channels `uint8 (0-255)`.                                               |
+| torch                                                 | `torch.zeros(16,3,320,640)`                | `torch.Tensor`  | BCHW format with RGB channels `float32 (0.0-1.0)`.                                          |
+| CSV                                                   | `'sources.csv'`                            | `str` or `Path` | CSV file containing paths to images, videos, or directories.                                |
+| video ✅                                              | `'video.mp4'`                              | `str` or `Path` | Video file in formats like MP4, AVI, etc.                                                   |
+| directory ✅                                          | `'path/'`                                  | `str` or `Path` | Path to a directory containing images or videos.                                            |
+| glob ✅                                               | `'path/*.jpg'`                             | `str`           | Glob pattern to match multiple files. Use the `*` character as a wildcard.                  |
+| YouTube ✅                                            | `'https://youtu.be/LNwODJXcvt4'`           | `str`           | URL to a YouTube video.                                                                     |
+| stream ✅                                             | `'rtsp://example.com/media.mp4'`           | `str`           | URL for streaming protocols such as RTSP, RTMP, TCP, or an IP address.                      |
+| multi-stream ✅                                       | `'list.streams'`                           | `str` or `Path` | `*.streams` text file with one stream URL per row, i.e. 8 streams will run at batch-size 8. |
+| webcam ✅                                             | `0`                                        | `int`           | Index of the connected camera device to run inference on.                                   |
 
 Below are code examples for using each source type:
 
@@ -248,7 +248,7 @@ Below are code examples for using each source type:
 
     === "CSV"
 
-        Run inference on a collection of images, URLs, videos, and directories listed in a CSV file.
+        Run inference on a collection of images, URLs, videos and directories listed in a CSV file.
         ```python
         from ultralytics import YOLO
 
@@ -280,7 +280,7 @@ Below are code examples for using each source type:
 
     === "directory"
 
-        Run inference on all images and videos in a directory. To include assets in subdirectories, use a glob pattern such as `path/to/dir/**/*`.
+        Run inference on all images and videos in a directory. To also capture images and videos in subdirectories use a glob pattern, i.e. `path/to/dir/**/*`.
         ```python
         from ultralytics import YOLO
 
@@ -350,7 +350,7 @@ Below are code examples for using each source type:
 
     === "Multi-Stream"
 
-        To handle multiple video streams simultaneously, use a `.streams` text file containing one source per line. The model will run batched inference where the batch size equals the number of streams. This setup enables efficient processing of multiple feeds concurrently.
+        To handle multiple video streams simultaneously, use a `.streams` text file containing the streaming sources. The model will run batched inference where the batch size equals the number of streams. This setup enables efficient processing of multiple feeds concurrently.
 
         ```python
         from ultralytics import YOLO
@@ -367,7 +367,7 @@ Below are code examples for using each source type:
 
         Example `.streams` text file:
 
-        ```text
+        ```txt
         rtsp://example.com/media1.mp4
         rtsp://example.com/media2.mp4
         rtmp://example2.com/live
@@ -395,33 +395,17 @@ Below are code examples for using each source type:
 
 `model.predict()` accepts multiple arguments that can be passed at inference time to override defaults:
 
-!!! note
-
-    Ultralytics uses minimal padding during inference by default (`rect=True`). In this mode, the shorter side of each image is padded only as much as needed to make it divisible by the model's maximum stride, rather than padding it all the way to the full `imgsz`. When running inference on a batch of images, minimal padding only works if all images have identical size. Otherwise, images are uniformly padded to a square shape with both sides equal to `imgsz`.
-
-    - `batch=1`, using `rect` padding by default.
-    - `batch>1`, using `rect` padding only if all the images in one batch have identical size, otherwise using square padding to `imgsz`.
-
 !!! example
 
-    === "Python"
+    ```python
+    from ultralytics import YOLO
 
-        ```python
-        from ultralytics import YOLO
+    # Load a pretrained YOLO11n model
+    model = YOLO("yolo11n.pt")
 
-        # Load a pretrained YOLO11n model
-        model = YOLO("yolo11n.pt")
-
-        # Run inference on 'bus.jpg' with arguments
-        model.predict("https://ultralytics.com/images/bus.jpg", save=True, imgsz=320, conf=0.5)
-        ```
-
-    === "CLI"
-
-        ```bash
-        # Run inference on 'bus.jpg'
-        yolo predict model=yolo11n.pt source='https://ultralytics.com/images/bus.jpg'
-        ```
+    # Run inference on 'bus.jpg' with arguments
+    model.predict("https://ultralytics.com/images/bus.jpg", save=True, imgsz=320, conf=0.5)
+    ```
 
 Inference arguments:
 
@@ -429,8 +413,7 @@ Inference arguments:
 
 Visualization arguments:
 
-{% from "macros/visualization-args.md" import param_table %}
-{{ param_table() }}
+{% include "macros/visualization-args.md" %}
 
 ## Image and Video Formats
 
@@ -490,20 +473,17 @@ All Ultralytics `predict()` calls will return a list of `Results` objects:
     model = YOLO("yolo11n.pt")
 
     # Run inference on an image
-    results = model("https://ultralytics.com/images/bus.jpg")
+    results = model("https://ultralytics.com/images/bus.jpg")  # list of 1 Results object
     results = model(
-        [
-            "https://ultralytics.com/images/bus.jpg",
-            "https://ultralytics.com/images/zidane.jpg",
-        ]
-    )  # batch inference
+        ["https://ultralytics.com/images/bus.jpg", "https://ultralytics.com/images/zidane.jpg"]
+    )  # list of 2 Results objects
     ```
 
 `Results` objects have the following attributes:
 
 | Attribute    | Type                  | Description                                                                              |
 | ------------ | --------------------- | ---------------------------------------------------------------------------------------- |
-| `orig_img`   | `np.ndarray`          | The original image as a numpy array.                                                     |
+| `orig_img`   | `numpy.ndarray`       | The original image as a numpy array.                                                     |
 | `orig_shape` | `tuple`               | The original image shape in (height, width) format.                                      |
 | `boxes`      | `Boxes, optional`     | A Boxes object containing the detection bounding boxes.                                  |
 | `masks`      | `Masks, optional`     | A Masks object containing the detection masks.                                           |
@@ -511,30 +491,31 @@ All Ultralytics `predict()` calls will return a list of `Results` objects:
 | `keypoints`  | `Keypoints, optional` | A Keypoints object containing detected keypoints for each object.                        |
 | `obb`        | `OBB, optional`       | An OBB object containing oriented bounding boxes.                                        |
 | `speed`      | `dict`                | A dictionary of preprocess, inference, and postprocess speeds in milliseconds per image. |
-| `names`      | `dict`                | A dictionary mapping class indices to class names.                                       |
+| `names`      | `dict`                | A dictionary of class names.                                                             |
 | `path`       | `str`                 | The path to the image file.                                                              |
-| `save_dir`   | `str, optional`       | Directory to save results.                                                               |
 
 `Results` objects have the following methods:
 
-| Method        | Return Type            | Description                                                                               |
-| ------------- | ---------------------- | ----------------------------------------------------------------------------------------- |
-| `update()`    | `None`                 | Updates the Results object with new detection data (boxes, masks, probs, obb, keypoints). |
-| `cpu()`       | `Results`              | Returns a copy of the Results object with all tensors moved to CPU memory.                |
-| `numpy()`     | `Results`              | Returns a copy of the Results object with all tensors converted to numpy arrays.          |
-| `cuda()`      | `Results`              | Returns a copy of the Results object with all tensors moved to GPU memory.                |
-| `to()`        | `Results`              | Returns a copy of the Results object with tensors moved to specified device and dtype.    |
-| `new()`       | `Results`              | Creates a new Results object with the same image, path, names, and speed attributes.      |
-| `plot()`      | `np.ndarray`           | Plots detection results on an input RGB image and returns the annotated image.            |
-| `show()`      | `None`                 | Displays the image with annotated inference results.                                      |
-| `save()`      | `str`                  | Saves annotated inference results image to file and returns the filename.                 |
-| `verbose()`   | `str`                  | Returns a log string for each task, detailing detection and classification outcomes.      |
-| `save_txt()`  | `str`                  | Saves detection results to a text file and returns the path to the saved file.            |
-| `save_crop()` | `None`                 | Saves cropped detection images to specified directory.                                    |
-| `summary()`   | `List[Dict[str, Any]]` | Converts inference results to a summarized dictionary with optional normalization.        |
-| `to_df()`     | `DataFrame`            | Converts detection results to a Polars DataFrame.                                         |
-| `to_csv()`    | `str`                  | Converts detection results to CSV format.                                                 |
-| `to_json()`   | `str`                  | Converts detection results to JSON format.                                                |
+| Method        | Return Type     | Description                                                                         |
+| ------------- | --------------- | ----------------------------------------------------------------------------------- |
+| `update()`    | `None`          | Update the boxes, masks, and probs attributes of the Results object.                |
+| `cpu()`       | `Results`       | Return a copy of the Results object with all tensors on CPU memory.                 |
+| `numpy()`     | `Results`       | Return a copy of the Results object with all tensors as numpy arrays.               |
+| `cuda()`      | `Results`       | Return a copy of the Results object with all tensors on GPU memory.                 |
+| `to()`        | `Results`       | Return a copy of the Results object with tensors on the specified device and dtype. |
+| `new()`       | `Results`       | Return a new Results object with the same image, path, and names.                   |
+| `plot()`      | `numpy.ndarray` | Plots the detection results. Returns a numpy array of the annotated image.          |
+| `show()`      | `None`          | Show annotated results to screen.                                                   |
+| `save()`      | `None`          | Save annotated results to file.                                                     |
+| `verbose()`   | `str`           | Return log string for each task.                                                    |
+| `save_txt()`  | `None`          | Save predictions into a txt file.                                                   |
+| `save_crop()` | `None`          | Save cropped predictions to `save_dir/cls/file_name.jpg`.                           |
+| `summary()`   | `List[Dict]`    | A list of dictionaries, each containing summarized information for results          |
+| `to_df()`     | `DataFrame`     | Convert the results to Pandas Dataframe.                                            |
+| `to_csv()`    | `str`           | Convert the result to CSV (comma separated values) format.                          |
+| `to_xml()`    | `str`           | Convert the results to XML (Extensible Markup Language) format.                     |
+| `to_json()`   | `str`           | Convert the results to JSON format.                                                 |
+| `to_sql()`    | `None`          | Dump the results into the SQL database.                                             |
 
 For more details see the [`Results` class documentation](../reference/engine/results.md).
 
@@ -750,26 +731,25 @@ The `plot()` method in `Results` objects facilitates visualization of prediction
 
 The `plot()` method supports various arguments to customize the output:
 
-| Argument     | Type                   | Description                                                                | Default           |
-| ------------ | ---------------------- | -------------------------------------------------------------------------- | ----------------- |
-| `conf`       | `bool`                 | Include detection confidence scores.                                       | `True`            |
-| `line_width` | `float`                | Line width of bounding boxes. Scales with image size if `None`.            | `None`            |
-| `font_size`  | `float`                | Text font size. Scales with image size if `None`.                          | `None`            |
-| `font`       | `str`                  | Font name for text annotations.                                            | `'Arial.ttf'`     |
-| `pil`        | `bool`                 | Return image as a PIL Image object.                                        | `False`           |
-| `img`        | `np.ndarray`           | Alternative image for plotting. Uses the original image if `None`.         | `None`            |
-| `im_gpu`     | `torch.Tensor`         | GPU-accelerated image for faster mask plotting. Shape: (1, 3, 640, 640).   | `None`            |
-| `kpt_radius` | `int`                  | Radius for drawn keypoints.                                                | `5`               |
-| `kpt_line`   | `bool`                 | Connect keypoints with lines.                                              | `True`            |
-| `labels`     | `bool`                 | Include class labels in annotations.                                       | `True`            |
-| `boxes`      | `bool`                 | Overlay bounding boxes on the image.                                       | `True`            |
-| `masks`      | `bool`                 | Overlay masks on the image.                                                | `True`            |
-| `probs`      | `bool`                 | Include classification probabilities.                                      | `True`            |
-| `show`       | `bool`                 | Display the annotated image directly using the default image viewer.       | `False`           |
-| `save`       | `bool`                 | Save the annotated image to a file specified by `filename`.                | `False`           |
-| `filename`   | `str`                  | Path and name of the file to save the annotated image if `save` is `True`. | `None`            |
-| `color_mode` | `str`                  | Specify the color mode, e.g., 'instance' or 'class'.                       | `'class'`         |
-| `txt_color`  | `tuple[int, int, int]` | RGB text color for bounding box and image classification label.            | `(255, 255, 255)` |
+| Argument     | Type            | Description                                                                | Default       |
+| ------------ | --------------- | -------------------------------------------------------------------------- | ------------- |
+| `conf`       | `bool`          | Include detection confidence scores.                                       | `True`        |
+| `line_width` | `float`         | Line width of bounding boxes. Scales with image size if `None`.            | `None`        |
+| `font_size`  | `float`         | Text font size. Scales with image size if `None`.                          | `None`        |
+| `font`       | `str`           | Font name for text annotations.                                            | `'Arial.ttf'` |
+| `pil`        | `bool`          | Return image as a PIL Image object.                                        | `False`       |
+| `img`        | `numpy.ndarray` | Alternative image for plotting. Uses the original image if `None`.         | `None`        |
+| `im_gpu`     | `torch.Tensor`  | GPU-accelerated image for faster mask plotting. Shape: (1, 3, 640, 640).   | `None`        |
+| `kpt_radius` | `int`           | Radius for drawn keypoints.                                                | `5`           |
+| `kpt_line`   | `bool`          | Connect keypoints with lines.                                              | `True`        |
+| `labels`     | `bool`          | Include class labels in annotations.                                       | `True`        |
+| `boxes`      | `bool`          | Overlay bounding boxes on the image.                                       | `True`        |
+| `masks`      | `bool`          | Overlay masks on the image.                                                | `True`        |
+| `probs`      | `bool`          | Include classification probabilities.                                      | `True`        |
+| `show`       | `bool`          | Display the annotated image directly using the default image viewer.       | `False`       |
+| `save`       | `bool`          | Save the annotated image to a file specified by `filename`.                | `False`       |
+| `filename`   | `str`           | Path and name of the file to save the annotated image if `save` is `True`. | `None`        |
+| `color_mode` | `str`           | Specify the color mode, e.g., 'instance' or 'class'.                       | `'class'`     |
 
 ## Thread-Safe Inference
 
@@ -847,9 +827,9 @@ Here's a Python script using OpenCV (`cv2`) and YOLO to run inference on video f
 
 This script will run predictions on each frame of the video, visualize the results, and display them in a window. The loop can be exited by pressing 'q'.
 
-[car spare parts]: https://github.com/ultralytics/docs/releases/download/0/car-parts-detection-for-predict.avif
-[football player detect]: https://github.com/ultralytics/docs/releases/download/0/football-players-detection.avif
-[human fall detect]: https://github.com/ultralytics/docs/releases/download/0/person-fall-detection.avif
+[car spare parts]: https://github.com/RizwanMunawar/ultralytics/assets/62513924/a0f802a8-0776-44cf-8f17-93974a4a28a1
+[football player detect]: https://github.com/RizwanMunawar/ultralytics/assets/62513924/7d320e1f-fc57-4d7f-a691-78ee579c3442
+[human fall detect]: https://github.com/RizwanMunawar/ultralytics/assets/62513924/86437c4a-3227-4eee-90ef-9efb697bdb43
 
 ## FAQ
 

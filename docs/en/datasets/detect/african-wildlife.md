@@ -74,7 +74,7 @@ To train a YOLO11n model on the African wildlife dataset for 100 [epochs](https:
         from ultralytics import YOLO
 
         # Load a model
-        model = YOLO("path/to/best.pt")  # load an African wildlife fine-tuned model
+        model = YOLO("path/to/best.pt")  # load a brain-tumor fine-tuned model
 
         # Inference using the model
         results = model.predict("https://ultralytics.com/assets/african-wildlife-sample.jpg")
@@ -97,28 +97,9 @@ The African wildlife dataset comprises a wide variety of images showcasing diver
 
 This example illustrates the variety and complexity of images in the African wildlife dataset, emphasizing the benefits of including mosaicing during the training process.
 
-## Citations, License and Acknowledgments
+## Citations and Acknowledgments
 
-We'd like to thank the original dataset author, [Bianca Ferreira](https://www.kaggle.com/biancaferreira/datasets), for releasing this dataset to the community. The Ultralytics team has updated and adapted it internally so it can be used seamlessly with [Ultralytics YOLO](https://www.ultralytics.com/yolo) models. This dataset is available under the [AGPL-3.0 License](https://github.com/ultralytics/ultralytics/blob/main/LICENSE).
-
-If you use this dataset in your research, please cite it using the mentioned details:
-
-!!! quote ""
-
-    === "BibTeX"
-
-        ```bibtex
-
-        @dataset{Ferreira_African_Wildlife_Ultralytics_Adaptation_2024,
-            author  = {Ferreira, Bianca},
-            title   = {African Wildlife Detection Dataset (Ultralytics YOLO Adaptation)},
-            url     = {https://docs.ultralytics.com/datasets/detect/african-wildlife/},
-            note    = {Original dataset by Bianca Ferreira; adapted for Ultralytics YOLO by Glenn Jocher and Muhammad Rizwan Munawar},
-            license = {AGPL-3.0},
-            version = {1.0.0},
-            year    = {2024}
-        }
-        ```
+The dataset has been released available under the [AGPL-3.0 License](https://github.com/ultralytics/ultralytics/blob/main/LICENSE).
 
 ## FAQ
 
@@ -163,4 +144,4 @@ Yes, the African Wildlife Dataset includes a wide variety of images showcasing d
 
 ### How can the African Wildlife Dataset be used to support wildlife conservation and research?
 
-The African Wildlife Dataset is ideal for supporting wildlife conservation and research by enabling the training and evaluation of models to identify African wildlife in different habitats. These models can assist in [monitoring animal populations](https://docs.ultralytics.com/solutions/), studying their behavior, and recognizing conservation needs. Additionally, the dataset can be utilized for educational purposes, helping students and researchers understand the characteristics and behaviors of different animal species. More details can be found in the [Applications](#applications) section.
+The African Wildlife Dataset is ideal for supporting wildlife conservation and research by enabling the training and evaluation of models to identify African wildlife in different habitats. These models can assist in monitoring animal populations, studying their behavior, and recognizing conservation needs. Additionally, the dataset can be utilized for educational purposes, helping students and researchers understand the characteristics and behaviors of different animal species. More details can be found in the [Applications](#applications) section.

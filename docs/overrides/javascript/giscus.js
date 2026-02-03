@@ -1,5 +1,3 @@
-// Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
-
 // Giscus functionality
 function loadGiscus() {
   const giscusContainer = document.getElementById("giscus-container");
@@ -27,24 +25,27 @@ function loadGiscus() {
   giscusContainer.appendChild(script);
 
   // Synchronize Giscus theme with palette
-  const palette = __md_get("__palette");
+  var palette = __md_get("__palette");
   if (palette && typeof palette.color === "object") {
-    const theme = palette.color.scheme === "slate" ? "dark" : "light";
+    var theme = palette.color.scheme === "slate" ? "dark" : "light";
     script.setAttribute("data-theme", theme);
   }
 
   // Register event handlers for theme changes
   var ref = document.querySelector("[data-md-component=palette]");
   if (ref) {
-    ref.addEventListener("change", () => {
-      const palette = __md_get("__palette");
+    ref.addEventListener("change", function () {
+      var palette = __md_get("__palette");
       if (palette && typeof palette.color === "object") {
-        const theme = palette.color.scheme === "slate" ? "dark" : "light";
+        var theme = palette.color.scheme === "slate" ? "dark" : "light";
 
         // Instruct Giscus to change theme
-        const frame = document.querySelector(".giscus-frame");
+        var frame = document.querySelector(".giscus-frame");
         if (frame) {
-          frame.contentWindow.postMessage({ giscus: { setConfig: { theme } } }, "https://giscus.app");
+          frame.contentWindow.postMessage(
+            { giscus: { setConfig: { theme } } },
+            "https://giscus.app",
+          );
         }
       }
     });

@@ -20,7 +20,7 @@ SAHI (Slicing Aided Hyper Inference) is an innovative library designed to optimi
 
 <p align="center">
   <br>
-  <iframe loading="lazy" width="720" height="405" src="https://www.youtube.com/embed/ILqMBah5ZvI"
+  <iframe loading="lazy" width="720" height="405" src="https://www.youtube.com/embed/tq3FU_QczxE"
     title="YouTube video player" frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
     allowfullscreen>
@@ -114,7 +114,6 @@ Perform standard inference using an image path or a numpy image.
 
 ```python
 from sahi.predict import get_prediction
-from sahi.utils.cv import read_image
 
 # With an image path
 result = get_prediction("demo_data/small-vehicles1.jpeg", detection_model)
@@ -128,8 +127,6 @@ result_with_np_image = get_prediction(read_image("demo_data/small-vehicles1.jpeg
 Export and visualize the predicted bounding boxes and masks:
 
 ```python
-from IPython.display import Image
-
 result.export_visuals(export_dir="demo_data/")
 Image("demo_data/prediction_visual.png")
 ```
@@ -186,7 +183,7 @@ predict(
 )
 ```
 
-You are now ready to use YOLO11 with SAHI for both standard and sliced inference.
+That's it! Now you're equipped to use YOLO11 with SAHI for both standard and sliced inference.
 
 ## Citations and Acknowledgments
 

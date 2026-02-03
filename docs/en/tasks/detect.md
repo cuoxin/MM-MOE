@@ -20,18 +20,18 @@ The output of an object detector is a set of bounding boxes that enclose the obj
     allowfullscreen>
   </iframe>
   <br>
-  <strong>Watch:</strong> Object Detection with Pretrained Ultralytics YOLO Model.
+  <strong>Watch:</strong> Object Detection with Pre-trained Ultralytics YOLO Model.
 </p>
 
 !!! tip
 
-    YOLO11 Detect models are the default YOLO11 models, i.e., `yolo11n.pt`, and are pretrained on [COCO](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco.yaml).
+    YOLO11 Detect models are the default YOLO11 models, i.e. `yolo11n.pt` and are pretrained on [COCO](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco.yaml).
 
 ## [Models](https://github.com/ultralytics/ultralytics/tree/main/ultralytics/cfg/models/11)
 
-YOLO11 pretrained Detect models are shown here. Detect, Segment, and Pose models are pretrained on the [COCO](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco.yaml) dataset, while Classify models are pretrained on the [ImageNet](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/ImageNet.yaml) dataset.
+YOLO11 pretrained Detect models are shown here. Detect, Segment and Pose models are pretrained on the [COCO](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco.yaml) dataset, while Classify models are pretrained on the [ImageNet](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/ImageNet.yaml) dataset.
 
-[Models](https://github.com/ultralytics/ultralytics/tree/main/ultralytics/cfg/models) are downloaded automatically from the latest Ultralytics [release](https://github.com/ultralytics/assets/releases) on first use.
+[Models](https://github.com/ultralytics/ultralytics/tree/main/ultralytics/cfg/models) download automatically from the latest Ultralytics [release](https://github.com/ultralytics/assets/releases) on first use.
 
 {% include "macros/yolo-det-perf.md" %}
 
@@ -95,14 +95,14 @@ Validate trained YOLO11n model [accuracy](https://www.ultralytics.com/glossary/a
         metrics.box.map  # map50-95
         metrics.box.map50  # map50
         metrics.box.map75  # map75
-        metrics.box.maps  # a list containing mAP50-95 for each category
+        metrics.box.maps  # a list contains map50-95 of each category
         ```
 
     === "CLI"
 
         ```bash
-        yolo detect val model=yolo11n.pt      # val official model
-        yolo detect val model=path/to/best.pt # val custom model
+        yolo detect val model=yolo11n.pt  # val official model
+        yolo detect val model=path/to/best.pt  # val custom model
         ```
 
 ## Predict
@@ -122,22 +122,13 @@ Use a trained YOLO11n model to run predictions on images.
 
         # Predict with the model
         results = model("https://ultralytics.com/images/bus.jpg")  # predict on an image
-
-        # Access the results
-        for result in results:
-            xywh = result.boxes.xywh  # center-x, center-y, width, height
-            xywhn = result.boxes.xywhn  # normalized
-            xyxy = result.boxes.xyxy  # top-left-x, top-left-y, bottom-right-x, bottom-right-y
-            xyxyn = result.boxes.xyxyn  # normalized
-            names = [result.names[cls.item()] for cls in result.boxes.cls.int()]  # class name of each box
-            confs = result.boxes.conf  # confidence score of each box
         ```
 
     === "CLI"
 
         ```bash
-        yolo detect predict model=yolo11n.pt source='https://ultralytics.com/images/bus.jpg'      # predict with official model
-        yolo detect predict model=path/to/best.pt source='https://ultralytics.com/images/bus.jpg' # predict with custom model
+        yolo detect predict model=yolo11n.pt source='https://ultralytics.com/images/bus.jpg'  # predict with official model
+        yolo detect predict model=path/to/best.pt source='https://ultralytics.com/images/bus.jpg'  # predict with custom model
         ```
 
 See full `predict` mode details in the [Predict](../modes/predict.md) page.
@@ -155,7 +146,7 @@ Export a YOLO11n model to a different format like ONNX, CoreML, etc.
 
         # Load a model
         model = YOLO("yolo11n.pt")  # load an official model
-        model = YOLO("path/to/best.pt")  # load a custom-trained model
+        model = YOLO("path/to/best.pt")  # load a custom trained model
 
         # Export the model
         model.export(format="onnx")
@@ -164,11 +155,11 @@ Export a YOLO11n model to a different format like ONNX, CoreML, etc.
     === "CLI"
 
         ```bash
-        yolo export model=yolo11n.pt format=onnx      # export official model
-        yolo export model=path/to/best.pt format=onnx # export custom-trained model
+        yolo export model=yolo11n.pt format=onnx  # export official model
+        yolo export model=path/to/best.pt format=onnx  # export custom trained model
         ```
 
-Available YOLO11 export formats are in the table below. You can export to any format using the `format` argument, i.e., `format='onnx'` or `format='engine'`. You can predict or validate directly on exported models, i.e., `yolo predict model=yolo11n.onnx`. Usage examples are shown for your model after export completes.
+Available YOLO11 export formats are in the table below. You can export to any format using the `format` argument, i.e. `format='onnx'` or `format='engine'`. You can predict or validate directly on exported models, i.e. `yolo predict model=yolo11n.onnx`. Usage examples are shown for your model after export completes.
 
 {% include "macros/export-table.md" %}
 
@@ -181,7 +172,7 @@ See full `export` details in the [Export](../modes/export.md) page.
 Training a YOLO11 model on a custom dataset involves a few steps:
 
 1. **Prepare the Dataset**: Ensure your dataset is in the YOLO format. For guidance, refer to our [Dataset Guide](../datasets/detect/index.md).
-2. **Load the Model**: Use the Ultralytics YOLO library to load a pretrained model or create a new model from a YAML file.
+2. **Load the Model**: Use the Ultralytics YOLO library to load a pre-trained model or create a new model from a YAML file.
 3. **Train the Model**: Execute the `train` method in Python or the `yolo detect train` command in CLI.
 
 !!! example
@@ -247,7 +238,7 @@ For more validation details, visit the [Val](../modes/val.md) page.
 
 ### What formats can I export a YOLO11 model to?
 
-Ultralytics YOLO11 allows exporting models to various formats such as [ONNX](https://www.ultralytics.com/glossary/onnx-open-neural-network-exchange), [TensorRT](https://www.ultralytics.com/glossary/tensorrt), [CoreML](https://docs.ultralytics.com/integrations/coreml/), and more to ensure compatibility across different platforms and devices.
+Ultralytics YOLO11 allows exporting models to various formats such as ONNX, TensorRT, CoreML, and more to ensure compatibility across different platforms and devices.
 
 !!! example
 
@@ -275,9 +266,9 @@ Check the full list of supported formats and instructions on the [Export](../mod
 
 Ultralytics YOLO11 is designed to offer state-of-the-art performance for object detection, segmentation, and pose estimation. Here are some key advantages:
 
-1. **Pretrained Models**: Utilize models pretrained on popular datasets like [COCO](https://docs.ultralytics.com/datasets/detect/coco/) and [ImageNet](https://docs.ultralytics.com/datasets/classify/imagenet/) for faster development.
+1. **Pretrained Models**: Utilize models pretrained on popular datasets like COCO and ImageNet for faster development.
 2. **High Accuracy**: Achieves impressive mAP scores, ensuring reliable object detection.
-3. **Speed**: Optimized for [real-time inference](https://www.ultralytics.com/glossary/real-time-inference), making it ideal for applications requiring swift processing.
+3. **Speed**: Optimized for real-time inference, making it ideal for applications requiring swift processing.
 4. **Flexibility**: Export models to various formats like ONNX and TensorRT for deployment across multiple platforms.
 
 Explore our [Blog](https://www.ultralytics.com/blog) for use cases and success stories showcasing YOLO11 in action.
