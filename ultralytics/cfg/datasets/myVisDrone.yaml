@@ -7,12 +7,11 @@
 ##     └── VOC  ← downloads here
 #
 
-path: /root/autodl-tmp/datasets/VEDAI
-train: visible/train
-val: visible/test
+train: /root/autodl-tmp/datasets/DroneVehicle/images/visible/train
+val: /root/autodl-tmp/datasets/DroneVehicle/images/visible/val
 
 # number of classes
-nc: 9
+nc: 10
 
 # class names
-names: ['plane', 'boat', 'camping_car', 'car', 'pick-up', 'tractor', 'truck', 'van', 'others']
+names: ['pedestrian', 'people', 'bicycle', 'car', 'van', 'truck', 'tricycle', 'awning-tricycle', 'bus', 'motor']
