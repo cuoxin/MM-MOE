@@ -9,7 +9,7 @@ class C2f_DualModal_MoE(nn.Module):
     基于 C2f 改造的双模态 MoE 模块
     参数: c1(输入), c2(输出), n(数量-这里简化为1), shortcut, g, e, num_experts, top_k
     """
-    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5, num_experts=4, top_k=2):
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5, num_experts=4, top_k=2, Layer_id='C2f_DualModal_MoE'):
         super().__init__()
         self.c = int(c2 * e)  # hidden channels
 
@@ -19,7 +19,7 @@ class C2f_DualModal_MoE(nn.Module):
 
         # --- MOE 核心组件 ---
         # 注意：这里的输入通道是 self.c (隐藏层通道数)
-        self.router = CrossModalRouter(self.c, num_experts, top_k=top_k)
+        self.router = CrossModalRouter(self.c, num_experts, top_k=top_k, Layer_id=f'{Layer_id}_Router')
         self.experts = DualModalExpertContainer(self.c, self.c)
 
         # 占位符，保持 C2f 结构完整性，但实际计算由 experts 接管

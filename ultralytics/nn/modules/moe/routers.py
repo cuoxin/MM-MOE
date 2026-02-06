@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from .stats import MoEStatsRecorder
 
 class CrossModalRouter(nn.Module):
     """
@@ -9,10 +10,12 @@ class CrossModalRouter(nn.Module):
     2. 拆分并进行互注意力 (Cross-Attention)
     3. 输出专家权重
     """
-    def __init__(self, in_channels, num_experts, top_k=2, reduction=16):
+    def __init__(self, in_channels, num_experts, top_k=2, reduction=16, Layer_id='MoE_Router'):
         super().__init__()
         self.top_k = top_k
         self.num_experts = num_experts
+        self.Layer_id = Layer_id
+        self.stats_recorder = MoEStatsRecorder()
 
         # 假设输入是 RGB和IR 通道拼接，所以对半切
         self.c_split = in_channels // 2
@@ -65,4 +68,7 @@ class CrossModalRouter(nn.Module):
         else:
             # 硬路由：极致省电，权重全置 1 (依靠专家的 mask 跳过计算)
             selected_weights = torch.ones(b, self.top_k, c, device=x.device)
+
+            self.stats_recorder.update(self.Layer_id, topk_indices, selected_weights)
+
             return selected_weights, topk_indices

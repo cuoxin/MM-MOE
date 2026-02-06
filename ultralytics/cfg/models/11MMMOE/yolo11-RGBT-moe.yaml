@@ -50,11 +50,11 @@ backbone:
 
   # P3层融合
   - [[6, 16], 1, Concat, [1]] # 21
-  - [-1, 1, C2f_DualModal_MoE, [256, True, 1, 0.5, 4, 2]] # 22
+  - [-1, 1, C2f_DualModal_MoE, [256, True, 1, 0.5, 4, 2, "P3"]] # 22
 
   # P4层融合
   - [[8, 18], 1, Concat, [1]] # 23
-  - [-1, 1, C2f_DualModal_MoE, [512, True, 1, 0.5, 4, 2]] # 24
+  - [-1, 1, C2f_DualModal_MoE, [512, True, 1, 0.5, 4, 2, "P4"]] # 24
 
   # P5层融合
   - [[10, 20], 1, Concat, [1]]  # 25
