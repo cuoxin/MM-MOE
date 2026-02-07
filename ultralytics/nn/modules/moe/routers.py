@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from .stats import MoEStatsRecorder
+from .loss import LoadBalancingLoss
+from .collector import MoEAuxCollector
 
 class CrossModalRouter(nn.Module):
     """
@@ -16,6 +18,10 @@ class CrossModalRouter(nn.Module):
         self.num_experts = num_experts
         self.Layer_id = Layer_id
         self.stats_recorder = MoEStatsRecorder()
+
+        self.register_buffer("aux_loss", torch.zeros(1), persistent=False)
+        # self.aux_loss = torch.tensor(0.0, device='cuda')  # 存储当前批次的负载均衡损失
+        self.balance_loss_fn = LoadBalancingLoss(num_experts, loss_weight=0.1)
 
         # 假设输入是 RGB和IR 通道拼接，所以对半切
         self.c_split = in_channels // 2
@@ -38,13 +44,14 @@ class CrossModalRouter(nn.Module):
 
     def forward(self, x):
         b, c, _, _ = x.shape
+        x_in = x.clone()
 
         # 1. 拆分模态 (假设是 Concat 进来的)
-        x_rgb, x_ir = torch.split(x, self.c_split, dim=1)
+        x_rgb, x_ir = torch.split(x_in, self.c_split, dim=1)
 
         # 2. 压缩特征
-        v_rgb = self.gap(x_rgb).view(b, -1)
-        v_ir = self.gap(x_ir).view(b, -1)
+        v_rgb = self.gap(x_rgb).flatten(1).clone()
+        v_ir = self.gap(x_ir).flatten(1).clone()
 
         # 3. 互注意力交互
         f_rgb = self.fc_rgb(v_rgb)
@@ -52,7 +59,8 @@ class CrossModalRouter(nn.Module):
         f_fused = torch.cat([f_rgb, f_ir], dim=1)
 
         # 4. 计算 Logits
-        logits = self.router_head(f_fused).view(b, self.num_experts, c)
+        # logits = self.router_head(f_fused).view(b, self.num_experts, c)
+        logits = self.router_head(f_fused).reshape(b, self.num_experts, c).clone()
 
         # 5. 选 Top-K 专家
         expert_scores = logits.mean(dim=2) # 按通道平均，得到专家总分
@@ -64,8 +72,14 @@ class CrossModalRouter(nn.Module):
             all_weights = torch.sigmoid(logits)
             gather_indices = topk_indices.unsqueeze(2).expand(-1, -1, c)
             selected_weights = torch.gather(all_weights, 1, gather_indices)
+
+            aux_loss = self.balance_loss_fn(expert_scores, topk_indices)
+            # self.aux_loss.copy_(aux_loss.detach())  # 存储当前批次的负载均衡损失
+            MoEAuxCollector.add(aux_loss)
+
             return selected_weights, topk_indices
         else:
+            self.aux_loss = torch.tensor(0.0, device=x.device)  # 推理阶段不计算负载均衡损失
             # 硬路由：极致省电，权重全置 1 (依靠专家的 mask 跳过计算)
             selected_weights = torch.ones(b, self.top_k, c, device=x.device)
 

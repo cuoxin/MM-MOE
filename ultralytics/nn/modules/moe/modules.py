@@ -25,6 +25,8 @@ class C2f_DualModal_MoE(nn.Module):
         # 占位符，保持 C2f 结构完整性，但实际计算由 experts 接管
         self.m = nn.ModuleList(nn.Identity() for _ in range(n))
 
+        self._moe_aux = None  # 存储当前批次的 MoE 辅助损失
+
     def forward(self, x):
         # 1. C2f 的分流操作
         y = list(self.cv1(x).split((self.c, self.c), 1))
@@ -33,10 +35,12 @@ class C2f_DualModal_MoE(nn.Module):
         # y[-1] 此时包含了 RGB和IR 的融合特征（由 cv1 混过的）
         # 但我们假设在特征空间中，前一半依然主要由 RGB 贡献，后一半由 IR 贡献
         # 或者在 cv1 使用 group conv 来强制隔离（可选优化）
-        moe_input = y[-1]
+        moe_input = y[-1].clone()
 
         # 3. 路由 + 专家计算
-        r_weights, r_indices = self.router(moe_input)
+        r_weights, r_indices = self.router(moe_input.clone())
+        # self._moe_aux = aux_loss  # 存储当前批次的 MoE 辅助损失
+
         expert_out = self.experts(moe_input, r_weights, r_indices)
 
         # 4. 替换原来的 Bottleneck 输出

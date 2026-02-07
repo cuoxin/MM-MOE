@@ -1,5 +1,9 @@
-import warnings
-warnings.filterwarnings('ignore')
+import torch
+# 启用梯度异常检测，会打印详细的错误溯源
+torch.autograd.set_detect_anomaly(True)
+
+# import warnings
+# warnings.filterwarnings('ignore')
 from ultralytics import YOLO
 
 if __name__ == '__main__':
@@ -21,5 +25,6 @@ if __name__ == '__main__':
                 channels=6,  #
                 project='runs/myVisDrone',
                 name='myVisDrone-yolo11n-MMMOE-test',
-                # val=True,
+                pretrained=False,
+                amp=False
                 )

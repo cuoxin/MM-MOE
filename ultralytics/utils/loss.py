@@ -22,6 +22,7 @@ from ultralytics.utils.tal import RotatedTaskAlignedAssigner, TaskAlignedAssigne
 from ultralytics.utils.atss import ATSSAssigner, generate_anchors
 from .metrics import bbox_iou, probiou
 from ultralytics.utils.torch_utils import autocast
+from ultralytics.nn.modules.moe.collector import MoEAuxCollector
 
 from .metrics import bbox_iou, probiou
 from .tal import bbox2dist
@@ -411,6 +412,8 @@ class v8DetectionLoss:
         device = next(model.parameters()).device  # get model device
         h = model.args  # hyperparameters
 
+        self.model = model
+
         m = model.model[-1]  # Detect() module
         self.bce = nn.BCEWithLogitsLoss(reduction="none")
         # self.bce = EMASlideLoss(nn.BCEWithLogitsLoss(reduction='none'))  # Exponential Moving Average Slide Loss
@@ -467,12 +470,24 @@ class v8DetectionLoss:
             # pred_dist = (pred_dist.view(b, a, c // 4, 4).softmax(2) * self.proj.type(pred_dist.dtype).view(1, 1, -1, 1)).sum(2)
         return dist2bbox(pred_dist, anchor_points, xywh=False)
 
+
     def __call__(self, preds, batch):
+
         if hasattr(self, 'assigner_aux'):
             loss, batch_size = self.compute_loss_aux(preds, batch)
         else:
             loss, batch_size = self.compute_loss(preds, batch)
-        return loss.sum() * batch_size, loss.detach()
+
+        moe_aux = MoEAuxCollector.pop_sum(self.device)
+        if moe_aux is None:
+            moe_aux = torch.zeros(1, device=self.device, dtype=loss.dtype)
+        else:
+            moe_aux = moe_aux.to(dtype=loss.dtype).reshape(1)
+
+        total = (loss.sum() + moe_aux) * batch_size
+        loss_items = torch.cat([loss.detach(), moe_aux.detach()])
+
+        return total, loss_items
 
     def compute_loss(self, preds, batch):
         """Calculate the sum of the loss for box, cls and dfl multiplied by batch size."""

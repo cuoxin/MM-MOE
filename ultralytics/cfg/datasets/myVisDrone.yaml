@@ -7,11 +7,11 @@
 ##     └── VOC  ← downloads here
 #
 
-train: /root/autodl-tmp/datasets/DroneVehicle/images/visible/train
-val: /root/autodl-tmp/datasets/DroneVehicle/images/visible/val
+train: /root/autodl-tmp/datasets/myDrone/images/visible/train
+val: /root/autodl-tmp/datasets/myDrone/images/visible/val
 
 # number of classes
-nc: 10
+nc: 3
 
 # class names
-names: ['pedestrian', 'people', 'bicycle', 'car', 'van', 'truck', 'tricycle', 'awning-tricycle', 'bus', 'motor']
+names: ['car', 'van', 'truck']
