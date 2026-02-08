@@ -30,59 +30,72 @@ class CrossModalRouter(nn.Module):
         self.gap = nn.AdaptiveAvgPool2d(1)
 
         # 互注意力交互层 (轻量化 MLP 模拟 Attention)
-        self.fc_rgb = nn.Linear(self.c_split, self.c_split // reduction, bias=False)
-        self.fc_ir = nn.Linear(self.c_split, self.c_split // reduction, bias=False)
+        # self.fc_rgb = nn.Linear(self.c_split, self.c_split // reduction, bias=False)
+        # self.fc_ir = nn.Linear(self.c_split, self.c_split // reduction, bias=False)
 
         # 决策层
-        fused_dim = (self.c_split // reduction) * 2
+        # fused_dim = (self.c_split // reduction) * 2
+        # self.router_head = nn.Sequential(
+        #     nn.Linear(fused_dim, fused_dim),
+        #     nn.LeakyReLU(0.1, inplace=True),
+        #     # 输出: 专家数 * 输入通道数 (生成通道级注意力权重)
+        #     nn.Linear(fused_dim, num_experts * in_channels)
+        # )
+
+        # 专家决策统计
+        self.register_buffer("selection_stats", torch.zeros(num_experts), persistent=False)
+
+        mid_channels = max(16, in_channels // reduction)
         self.router_head = nn.Sequential(
-            nn.Linear(fused_dim, fused_dim),
-            nn.LeakyReLU(0.1, inplace=True),
-            # 输出: 专家数 * 输入通道数 (生成通道级注意力权重)
-            nn.Linear(fused_dim, num_experts * in_channels)
+            nn.Linear(in_channels, mid_channels),
+            nn.SiLU(inplace=True),
+            nn.Linear(mid_channels, num_experts)
         )
 
     def forward(self, x):
-        b, c, _, _ = x.shape
         x_in = x.clone()
 
-        # 1. 拆分模态 (假设是 Concat 进来的)
-        x_rgb, x_ir = torch.split(x_in, self.c_split, dim=1)
+        b, c, h, w = x_in.shape
 
-        # 2. 压缩特征
-        v_rgb = self.gap(x_rgb).flatten(1).clone()
-        v_ir = self.gap(x_ir).flatten(1).clone()
+        # 提取全局特征
+        global_feat = self.gap(x_in).flatten(1).clone()
 
-        # 3. 互注意力交互
-        f_rgb = self.fc_rgb(v_rgb)
-        f_ir = self.fc_ir(v_ir)
-        f_fused = torch.cat([f_rgb, f_ir], dim=1)
-
-        # 4. 计算 Logits
+        # 计算 Logits
         # logits = self.router_head(f_fused).view(b, self.num_experts, c)
-        logits = self.router_head(f_fused).reshape(b, self.num_experts, c).clone()
+        # logits = self.router_head(f_fused).reshape(b, self.num_experts, c).clone()
+        logits = self.router_head(global_feat)
 
-        # 5. 选 Top-K 专家
-        expert_scores = logits.mean(dim=2) # 按通道平均，得到专家总分
-        _, topk_indices = torch.topk(expert_scores, self.top_k, dim=1)
-
-        # 6. 生成权重
+        # 训练时注入噪声
         if self.training:
-            # 软路由：保留梯度
-            all_weights = torch.sigmoid(logits)
-            gather_indices = topk_indices.unsqueeze(2).expand(-1, -1, c)
-            selected_weights = torch.gather(all_weights, 1, gather_indices)
+            noise = torch.randn_like(logits) * 0.1
+            noisy_logits = logits + noise
+        else:
+            noisy_logits = logits
 
-            aux_loss = self.balance_loss_fn(expert_scores, topk_indices)
-            # self.aux_loss.copy_(aux_loss.detach())  # 存储当前批次的负载均衡损失
+        # 选 Top-K 专家
+        _, topk_indices = torch.topk(noisy_logits, self.top_k, dim=1)
+
+        # 生成权重
+        if self.training:
+
+            # 统计专家选择情况
+            with torch.no_grad():
+                flat_indices = topk_indices.flatten()
+                counts = torch.bincount(flat_indices, minlength=self.num_experts)
+                self.selection_stats += counts
+
+            # 软路由：保留梯度
+            topk_logits = torch.gather(logits, 1, topk_indices)
+            selected_weights = F.softmax(topk_logits, dim=1)
+
+            # 计算负载损失，使用原始 logits
+            aux_loss = self.balance_loss_fn(logits, topk_indices)
             MoEAuxCollector.add(aux_loss)
 
             return selected_weights, topk_indices
         else:
             self.aux_loss = torch.tensor(0.0, device=x.device)  # 推理阶段不计算负载均衡损失
             # 硬路由：极致省电，权重全置 1 (依靠专家的 mask 跳过计算)
-            selected_weights = torch.ones(b, self.top_k, c, device=x.device)
-
-            self.stats_recorder.update(self.Layer_id, topk_indices, selected_weights)
+            selected_weights = torch.ones(b, self.top_k, device=x.device)
 
             return selected_weights, topk_indices

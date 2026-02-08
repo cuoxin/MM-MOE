@@ -1,0 +1,18 @@
+## YOLOv5 🚀 by Ultralytics https://ultralytics.com, licensed under GNU GPL v3.0
+## PASCAL VOC dataset http://host.robots.ox.ac.uk/pascal/VOC
+## Example usage: python train.py --data VOC.yaml
+## parent
+## ├── yolov5
+## └── datasets
+##     └── VOC  ← downloads here
+#
+
+train: /home/adrianyan/user/study/datasets/myDrone/images/visible/train
+val: /home/adrianyan/user/study/datasets/myDrone/images/visible/val
+test: /home/adrianyan/user/study/datasets/myDrone/images/visible/test
+
+# number of classes
+nc: 3
+
+# class names
+names: ['car', 'van', 'truck']
