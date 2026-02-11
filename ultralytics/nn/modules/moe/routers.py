@@ -21,7 +21,7 @@ class CrossModalRouter(nn.Module):
 
         self.register_buffer("aux_loss", torch.zeros(1), persistent=False)
         # self.aux_loss = torch.tensor(0.0, device='cuda')  # 存储当前批次的负载均衡损失
-        self.balance_loss_fn = LoadBalancingLoss(num_experts, loss_weight=0.1)
+        self.balance_loss_fn = LoadBalancingLoss(num_experts, loss_weight=0.5)
 
         # 假设输入是 RGB和IR 通道拼接，所以对半切
         self.c_split = in_channels // 2
@@ -42,8 +42,10 @@ class CrossModalRouter(nn.Module):
         #     nn.Linear(fused_dim, num_experts * in_channels)
         # )
 
-        # 专家决策统计
-        self.register_buffer("selection_stats", torch.zeros(num_experts), persistent=False)
+        # 监测数据初始化
+        self.register_buffer("selection_states", torch.zeros(num_experts), persistent=False)
+        self.register_buffer("expert_scores_sum", torch.zeros(num_experts), persistent=False)
+        self.register_buffer("states_step_count", torch.zeros(1), persistent=False)
 
         mid_channels = max(16, in_channels // reduction)
         self.router_head = nn.Sequential(
@@ -67,7 +69,7 @@ class CrossModalRouter(nn.Module):
 
         # 训练时注入噪声
         if self.training:
-            noise = torch.randn_like(logits) * 0.1
+            noise = torch.randn_like(logits) * 2.0
             noisy_logits = logits + noise
         else:
             noisy_logits = logits
@@ -78,11 +80,16 @@ class CrossModalRouter(nn.Module):
         # 生成权重
         if self.training:
 
-            # 统计专家选择情况
+            # 数据监测区
             with torch.no_grad():
+                # 统计选择次数
                 flat_indices = topk_indices.flatten()
                 counts = torch.bincount(flat_indices, minlength=self.num_experts)
-                self.selection_stats += counts
+                self.selection_states += counts
+
+                # 统计专家分数 (使用原始 logits 的均值作为分数)
+                self.expert_scores_sum += logits.mean(dim=0)
+                self.states_step_count += 1
 
             # 软路由：保留梯度
             topk_logits = torch.gather(logits, 1, topk_indices)

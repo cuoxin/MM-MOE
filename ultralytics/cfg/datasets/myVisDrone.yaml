@@ -9,6 +9,7 @@
 
 train: /root/autodl-tmp/datasets/myDrone/images/visible/train
 val: /root/autodl-tmp/datasets/myDrone/images/visible/val
+test: /root/autodl-tmp/datasets/myDrone/images/visible/test
 
 # number of classes
 nc: 3

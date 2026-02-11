@@ -3,7 +3,7 @@ warnings.filterwarnings('ignore')
 from ultralytics import YOLO
 
 if __name__ == '__main__':
-    model = YOLO(R'/root/autodl-tmp/MM-MOE/runs/myVisDrone/myVisDrone-yolo11n-MMMOE-test3/weights/best.pt')
+    model = YOLO(R'/root/autodl-tmp/MM-MOE/runs/myVisDrone/myVisDrone-yolo11n-MMMOE-topk1-test-e3-/weights/best.pt')
     model.val(data=r'/root/autodl-tmp/MM-MOE/ultralytics/cfg/datasets/myVisDrone.yaml',
               split='val',
               imgsz=640,

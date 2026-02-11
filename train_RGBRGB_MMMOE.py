@@ -26,10 +26,10 @@ def on_train_epoch_end(trainer):
     # -------------------------------------------------------
     # trainer.save_dir 是 pathlib.Path 对象，指向 runs/project/name
     save_dir = trainer.save_dir
-    log_file = save_dir / "moe_stats.txt"
+    log_file = save_dir / "moe_states.txt"
 
     # 准备要记录的文本内容
-    header_msg = f"\n{'='*20} MoE Expert Stats (Epoch {trainer.epoch + 1}) {'='*20}\n"
+    header_msg = f"\n{'='*20} MoE Expert States (Epoch {trainer.epoch + 1}) {'='*20}\n"
     content_msgs = []
 
     found_router = False
@@ -43,22 +43,33 @@ def on_train_epoch_end(trainer):
     # 3. 遍历统计
     # -------------------------------------------------------
     for name, module in model.named_modules():
-        if hasattr(module, 'selection_stats') and hasattr(module, 'Layer_id'):
+        if hasattr(module, 'selection_states') and hasattr(module, 'Layer_id'):
             found_router = True
-            stats = module.selection_stats
-            total_calls = stats.sum().item()
 
-            if total_calls > 0:
+            stats = module.selection_states
+            total_calls = stats.sum().item()
+            step_count = module.states_step_count.item()
+
+            if total_calls > 0 and step_count > 0:
                 # 转成百分比
                 percentages = (stats / total_calls * 100).cpu().tolist()
-                stats_str = " | ".join([f"Exp{i}: {p:5.1f}%" for i, p in enumerate(percentages)])
-                msg = f"Layer {module.Layer_id}: {stats_str}"
-                content_msgs.append(msg)
+                states_str = " | ".join([f"Exp{i}: {p:5.1f}%" for i, p in enumerate(percentages)])
+
+                avg_scores = (module.expert_scores_sum / step_count).cpu().tolist()
+                scores_str = " | ".join([f"{s:5.2f}" for s in avg_scores])
+
+                msg_line1 = f"Layer {module.Layer_id} [Select%]: {states_str}"
+                msg_line2 = f"       >>> [Avg Score]: {scores_str}"
+                content_msgs.append(msg_line1)
+                content_msgs.append(msg_line2)
+                content_msgs.append("-"*60)
             else:
                 content_msgs.append(f"Layer {module.Layer_id}: No data (total_calls=0)")
 
             # 🔥 必须清零
-            module.selection_stats.zero_()
+            module.selection_states.zero_()
+            module.expert_scores_sum.zero_()
+            module.states_step_count.zero_()
 
     footer_msg = "="*60 + "\n"
 
@@ -85,17 +96,17 @@ def on_train_epoch_end(trainer):
         LOGGER.info("No MoE Routers found to monitor.")
 
 if __name__ == '__main__':
-    model = YOLO('/home/adrianyan/user/study/MM-MOE/ultralytics/cfg/models/11MMMOE/yolo11-RGBT-moe.yaml')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
+    model = YOLO('/root/autodl-tmp/MM-MOE/ultralytics/cfg/models/11MMMOE/yolo11-RGBT-moe-head.yaml')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
 
     model.add_callback('on_train_epoch_end', on_train_epoch_end)
 
-    model.train(data=R'/home/adrianyan/user/study/MM-MOE/ultralytics/cfg/datasets/myVisDroneLocal.yaml',
+    model.train(data=R'/root/autodl-tmp/MM-MOE/ultralytics/cfg/datasets/myVisDrone.yaml',
                 cache=False,
                 imgsz=640,
-                epochs=3,
-                batch=8,
+                epochs=300,
+                batch=64,
                 close_mosaic=0,
-                workers=2,
+                workers=8,
                 device='0',
                 optimizer='SGD',  # using SGD
                 # resume='', # last.pt path
@@ -104,7 +115,7 @@ if __name__ == '__main__':
                 use_simotm="RGBRGB6C",
                 channels=6,  #
                 project='runs/myVisDrone',
-                name='myVisDrone-yolo11n-MMMOE-test-e3',
+                name='myVisDrone-yolo11n-MMMOE-head-test-e3-',
                 pretrained=False,
                 amp=False
                 )
