@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from ..conv import Conv
 from .routers import CrossModalRouter
-from .experts import DualModalExpertContainer
+from .experts import UniversalMoEContainer
 
 class C2f_DualModal_MoE(nn.Module):
     """
@@ -20,7 +20,7 @@ class C2f_DualModal_MoE(nn.Module):
         # --- MOE 核心组件 ---
         # 注意：这里的输入通道是 self.c (隐藏层通道数)
         self.router = CrossModalRouter(self.c, num_experts, top_k=top_k, Layer_id=f'{Layer_id}_Router')
-        self.experts = DualModalExpertContainer(self.c, self.c)
+        self.experts = UniversalMoEContainer(self.c, self.c, num_experts=num_experts)
 
         # 占位符，保持 C2f 结构完整性，但实际计算由 experts 接管
         self.m = nn.ModuleList(nn.Identity() for _ in range(n))
