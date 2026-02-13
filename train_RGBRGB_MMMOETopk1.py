@@ -96,7 +96,7 @@ def on_train_epoch_end(trainer):
         LOGGER.info("No MoE Routers found to monitor.")
 
 if __name__ == '__main__':
-    model = YOLO('/root/autodl-tmp/MM-MOE/ultralytics/cfg/models/11MMMOE/yolo11-RGBT-moe-headV2-topk1.yaml')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
+    model = YOLO('/root/autodl-tmp/MM-MOE/ultralytics/cfg/models/11MMMOE/yolo11-RGBT-moe-headV3-topk1.yaml')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
 
     model.add_callback('on_train_epoch_end', on_train_epoch_end)
 
@@ -115,7 +115,7 @@ if __name__ == '__main__':
                 use_simotm="RGBRGB6C",
                 channels=6,  #
                 project='runs/myVisDrone',
-                name='myVisDrone-yolo11n-MMMOE-head-test-e3-topk1-',
+                name='myVisDrone-yolo11n-MMMOE-headV3-test-e3-topk1-',
                 pretrained=False,
                 amp=False
                 )

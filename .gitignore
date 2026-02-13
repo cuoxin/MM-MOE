@@ -181,3 +181,5 @@ calibration_*.npy
 /ultralytics/cfg/datasets/dota8_MINE.yaml
 /val2.py
 /heatmap_RGBT_test.py
+
+val.py
