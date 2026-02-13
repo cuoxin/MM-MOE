@@ -182,4 +182,4 @@ calibration_*.npy
 /val2.py
 /heatmap_RGBT_test.py
 
-val.py
+./val.py

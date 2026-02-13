@@ -1,35 +1,25 @@
-'''
-2026-2-13: 针对 Backbone 的专家模块，设计了一个新的专家结构 `OptimizedSimpleExpert`，
-它使用 3x3 卷积来提取空间特征，并且使用 GroupNorm 来稳定训练。
-这种设计更适合 Backbone 的特征处理需求，同时保持了计算效率。
-'''
-
-
 import torch
 import torch.nn as nn
 
 def get_safe_groups(channels: int, desired_groups: int = 8) -> int:
+    """Ensure num_groups divides channels"""
     groups = min(desired_groups, channels)
     while channels % groups != 0:
         groups -= 1
     return max(1, groups)
 
 class OptimizedSimpleExpert(nn.Module):
-    """
-    Backbone 专用专家：
-    1. 使用 3x3 卷积提取空间特征（这对 Backbone 至关重要）。
-    2. 使用 GroupNorm 代替 BN，防止 MoE 路由导致的 Batch 大小抖动。
-    """
     def __init__(self, in_channels, out_channels, expand_ratio=2, num_groups=8):
         super().__init__()
         hidden_dim = int(in_channels * expand_ratio)
         self.conv = nn.Sequential(
-            # 第一层：3x3 卷积，提取空间信息 (Padding=1 保持尺寸)
+            # === 修改建议：这里改为 3x3 卷积，padding=1 ===
+            # 这样专家既有通道混合能力，又有空间感知能力，就像原本的 Bottleneck 一样
             nn.Conv2d(in_channels, hidden_dim, 3, 1, 1, bias=False),
+
             nn.GroupNorm(get_safe_groups(hidden_dim, num_groups), hidden_dim),
             nn.SiLU(inplace=True),
 
-            # 第二层：1x1 卷积，压缩/映射通道
             nn.Conv2d(hidden_dim, out_channels, 1, bias=False),
             nn.GroupNorm(get_safe_groups(out_channels, num_groups), out_channels)
         )

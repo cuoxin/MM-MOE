@@ -76,6 +76,16 @@ class C2f_DualModal_MoE(nn.Module):
         self.cv1 = Conv(c1, 2 * self.c, 1, 1)
         self.cv2 = Conv((2 + n) * self.c, c2, 1) # n 这里如果是 placeholder 可以设为 0
 
+        # print(f"\n🔍 [MoE Config Check] Layer: {Layer_id}")
+        # print(f"   |-- c1 (输入通道): {c1}")
+        # print(f"   |-- c2 (输出通道): {c2}")
+        # print(f"   |-- n  (堆叠次数): {n}")
+        # print(f"   |-- shortcut    : {shortcut}")
+        # print(f"   |-- g  (分组数)  : {g}")
+        # print(f"   |-- e  (膨胀系数): {e}")
+        # print(f"   |-- num_experts : {num_experts}")
+        # print(f"   |-- top_k       : {top_k}")
+
         # === 核心修改：使用新的 Router 和 Container ===
         self.router = UltraEfficientRouter(self.c, num_experts, top_k=top_k, Layer_id="{}_{}".format(Layer_id, "Router"))
         self.experts = UniversalMoEContainer(self.c, self.c, num_experts, top_k)
