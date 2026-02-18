@@ -96,26 +96,28 @@ def on_train_epoch_end(trainer):
         LOGGER.info("No MoE Routers found to monitor.")
 
 if __name__ == '__main__':
-    model = YOLO('/root/autodl-tmp/MM-MOE/ultralytics/cfg/models/11MMMOE/yolo11-RGBT-moe-backboneV1.yaml')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
+    model = YOLO('/root/autodl-tmp/MM-MOE/runs/myVisDrone/myVisDrone-yolo11n-MMMOE-backboneV1_3-test-e3-topk1-/weights/last.pt')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
 
     model.add_callback('on_train_epoch_end', on_train_epoch_end)
 
     model.train(data=R'/root/autodl-tmp/MM-MOE/ultralytics/cfg/datasets/myVisDrone.yaml',
-                cache=False,
+                cache=True,
                 imgsz=640,
-                epochs=300,
-                batch=64,
-                close_mosaic=0,
-                workers=8,
+                epochs=450,
+                batch=96,
+                close_mosaic=10,
+                workers=22,
+                # persistent_workers=True,
                 device='0',
                 optimizer='SGD',  # using SGD
-                # resume='', # last.pt path
+                resume=True, # last.pt path
                 # amp=False, # close amp
                 # fraction=0.2,
                 use_simotm="RGBRGB6C",
                 channels=6,  #
                 project='runs/myVisDrone',
-                name='myVisDrone-yolo11n-MMMOE-backboneV1-test-e3-topk1-',
+                name='myVisDrone-yolo11n-MMMOE-backboneV1_3-test-e3-topk1-',
                 pretrained=False,
-                amp=False
+                amp=True,
+                verbose=False
                 )

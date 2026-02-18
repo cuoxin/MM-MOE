@@ -61,6 +61,7 @@ class UniversalMoEContainer(nn.Module):
             selected_weights = weights_flat[mask_indices].view(-1, 1, 1, 1)
             weighted_out = expert_out * selected_weights
 
+            weighted_out = weighted_out.to(expert_output.dtype)
             # 6. 使用 index_add_ 原位聚合，这是 PyTorch 中最快的稀疏聚合方式之一
             expert_output.index_add_(0, batch_indices, weighted_out)
 
@@ -70,7 +71,7 @@ class C2f_DualModal_MoE(nn.Module):
     """
     你的顶层调用模块 (需更新以使用上述组件)
     """
-    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5, num_experts=4, top_k=1, Layer_id='MoE_Router'):
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5, num_experts=4, top_k=1, loss_weight=0.01, Layer_id='MoE_Router'):
         super().__init__()
         self.c = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, 2 * self.c, 1, 1)
@@ -85,9 +86,10 @@ class C2f_DualModal_MoE(nn.Module):
         # print(f"   |-- e  (膨胀系数): {e}")
         # print(f"   |-- num_experts : {num_experts}")
         # print(f"   |-- top_k       : {top_k}")
+        # print(f"   |-- loss_weight  : {loss_weight}\n")
 
         # === 核心修改：使用新的 Router 和 Container ===
-        self.router = UltraEfficientRouter(self.c, num_experts, top_k=top_k, Layer_id="{}_{}".format(Layer_id, "Router"))
+        self.router = UltraEfficientRouter(self.c, num_experts, top_k=top_k, loss_weight=loss_weight, Layer_id="{}_{}".format(Layer_id, "Router"))
         self.experts = UniversalMoEContainer(self.c, self.c, num_experts, top_k)
 
         # 如果需要保留 C2f 的残差结构，可以在这里添加 Identity
