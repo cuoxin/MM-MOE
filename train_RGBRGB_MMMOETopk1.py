@@ -115,7 +115,7 @@ if __name__ == '__main__':
                 use_simotm="RGBRGB6C",
                 channels=6,  #
                 project='runs/myVisDrone',
-                name='myVisDrone-yolo11n-MMMOE-backboneV1-test-e3-topk1-',
+                name='myVisDrone-yolo11n-MMMOE-backboneV1_8-test-e3-topk1-',
                 pretrained=False,
                 amp=False
                 )

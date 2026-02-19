@@ -15,7 +15,7 @@ class UltraEfficientRouter(nn.Module):
        - 训练时：注入噪声 + Softmax权重 + 计算负载均衡Loss + 统计专家使用率。
        - 推理时：无噪声 + 权重置1 (Hard Routing) + 跳过Loss计算 -> 极致速度。
     """
-    def __init__(self, in_channels, num_experts, top_k=1, reduction=16, loss_weight=2.0, Layer_id='MoE_Router'):
+    def __init__(self, in_channels, num_experts, top_k=1, reduction=16, loss_weight=0.5, Layer_id='MoE_Router'):
         super().__init__()
         self.top_k = top_k
         self.num_experts = num_experts
