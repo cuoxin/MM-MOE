@@ -5,30 +5,32 @@ class MoEAuxCollector:
 
     @classmethod
     def add(cls, aux):
-        if aux is None:
-            return
-
-        aux_clone = aux.clone().detach()
-        aux_clone.requires_grad = aux.requires_grad
-        cls._aux.append(aux_clone)
+        if aux is not None:
+            # 直接存入 Tensor，保持梯度连通
+            cls._aux.append(aux)
 
     @classmethod
-    def pop_sum(cls, device=None):
+    def pop_sum(cls, device=None, num_moe_layers=4):
+        """
+        弹出并求和。
+        增加 num_moe_layers 参数，默认 4 个 MoE 层。
+        """
         if not cls._aux:
             return None
-        if device is None:
-            device = cls._aux[0].device
-        processed_tensors = []
-        for a in cls._aux:
-            # 每一步操作都clone，避免和_aux共享内存
-            a_reshaped = a.reshape(()).clone()
-            a_to = a_reshaped.to(device).clone()
-            processed_tensors.append(a_to)
 
-        # 修复3：sum后再clone，切断和processed_tensors的依赖
-        s = torch.stack(processed_tensors).sum().clone()
+        # 💥 核心修复：只取当前最新前向传播生成的最后 4 个 loss！
+        # 完美扔掉 YOLO 初始化时留下的 "死节点(Dummy Loss)"
+        valid_aux = cls._aux[-num_moe_layers:]
 
-        # 修复4：把clear改为“重新赋值空列表”（非原地操作）
-        # cls._aux.clear()  # 原地操作，注释掉
-        cls._aux = []  # 非原地操作，重新创建空列表
-        return s
+        if device is not None:
+            processed_tensors = [a.to(device) for a in valid_aux]
+        else:
+            processed_tensors = valid_aux
+
+        # 求和
+        total_aux = torch.stack(processed_tensors).sum()
+
+        # 清空列表，迎接下一个 Batch
+        cls._aux = []
+
+        return total_aux

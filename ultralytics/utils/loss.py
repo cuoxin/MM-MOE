@@ -485,7 +485,7 @@ class v8DetectionLoss:
             moe_aux = moe_aux.to(dtype=loss.dtype).reshape(1)
 
         total = (loss.sum() + moe_aux) * batch_size
-        loss_items = torch.cat([loss.detach(), moe_aux.detach()])
+        loss_items = torch.cat([loss.detach(), moe_aux.detach(), total.detach()])
 
         return total, loss_items
 

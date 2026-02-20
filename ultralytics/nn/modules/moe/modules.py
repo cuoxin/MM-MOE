@@ -70,7 +70,7 @@ class C2f_DualModal_MoE(nn.Module):
     """
     你的顶层调用模块 (需更新以使用上述组件)
     """
-    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5, num_experts=4, top_k=1, Layer_id='MoE_Router'):
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5, num_experts=4, top_k=1, loss_weight=2.0, Layer_id='MoE_Router'):
         super().__init__()
         self.c = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, 2 * self.c, 1, 1)
@@ -87,7 +87,7 @@ class C2f_DualModal_MoE(nn.Module):
         # print(f"   |-- top_k       : {top_k}")
 
         # === 核心修改：使用新的 Router 和 Container ===
-        self.router = UltraEfficientRouter(self.c, num_experts, top_k=top_k, Layer_id="{}_{}".format(Layer_id, "Router"))
+        self.router = UltraEfficientRouter(self.c, num_experts, top_k=top_k, loss_weight=loss_weight, Layer_id="{}_{}".format(Layer_id, "Router"))
         self.experts = UniversalMoEContainer(self.c, self.c, num_experts, top_k)
 
         # 如果需要保留 C2f 的残差结构，可以在这里添加 Identity

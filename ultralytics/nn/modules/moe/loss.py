@@ -3,44 +3,68 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class LoadBalancingLoss(nn.Module):
-    def __init__(self, num_experts, loss_weight=0.1):
+    def __init__(self, num_experts, loss_weight=0.05, z_loss_weight=1e-4, ignore_bg_expert=False):
+        """
+        Args:
+            num_experts: 专家总数
+            loss_weight: 负载均衡主权重 (建议 0.01~0.05，不要太大)
+            z_loss_weight: 稳定 Logits 的 Z-Loss 权重 (默认 1e-3 即可)
+            ignore_bg_expert: 是否开启“特化背景专家”。若为 True，第 0 号专家将不受 25% 均分的惩罚。
+        """
         super().__init__()
         self.num_experts = num_experts
-        self.loss_weight = loss_weight
+        self.loss_weight = 0.001
+        self.z_loss_weight = z_loss_weight
+        self.ignore_bg_expert = ignore_bg_expert
 
     def forward(self, router_logits, expert_indices):
         """
         Args:
-            router_logits: [Batch, Num_Experts] (或者是 [Batch, Num_Experts, Channels] 被平均后的)
-                           这是 Router 输出的原始分数 (Softmax之前)
-            expert_indices: [Batch, TopK] 选中的专家索引 (仅用于调试或Hard Loss，Aux Loss主要用概率)
+            router_logits: [Batch, Num_Experts] 未经过 Softmax 的原始分数
+            expert_indices: [Batch, TopK] 实际选中的专家索引
         """
-        # 1. 重要：计算概率分布 (P)
-        # Softmax 必须在 dim=1 上进行
+        batch_size = router_logits.size(0)
+        top_k = expert_indices.size(1)
+
+        # ==========================================
+        # 优化点 2：Router Z-Loss (稳定 Logits 不爆炸)
+        # ==========================================
+        # 计算公式: mean( (log(sum(exp(logits))))^2 )
+        # torch.logsumexp 是极其数值安全的写法
+        z_loss = torch.mean(torch.logsumexp(router_logits, dim=1) ** 2) * self.z_loss_weight
+
+        # ==========================================
+        # 优化点 1：标准的 Switch Transformer 均衡 Loss
+        # ==========================================
+        # 1. 计算 Router 意图 (Importance, 可导)
         router_probs = F.softmax(router_logits, dim=1)
+        P_avg = router_probs.mean(dim=0)  # [Num_Experts]
 
-        # 2. 专家的平均概率 (P_avg) - 这个代表 Router "想" 选谁
-        # [Num_Experts]
-        P_avg = router_probs.mean(dim=0)
+        # 2. 统计真实物理负载 (Load, 不可导)
+        # 将 [Batch, TopK] 展开成 one_hot 矩阵统计次数
+        route_one_hot = F.one_hot(expert_indices, num_classes=self.num_experts).float()
+        f_avg = route_one_hot.sum(dim=(0, 1)) / (batch_size * top_k)
+        f_avg = f_avg.detach() # 核心：真实负载是既定事实，不参与算梯度！
 
-        # 3. 专家的实际负载 (f) - 这个代表 实际 "选" 了谁
-        # 为了可导，我们通常用 Softmax 的输出来近似实际选择，
-        # 或者直接计算 load_balancing_loss = num_experts * sum(P_i * f_i)
-        # 在 Switch Transformer 中，f_i 也是通过 probs 计算的，
-        # 简单版：f_i = fraction of samples dispatched to expert i.
+        # ==========================================
+        # 优化点 3：支持无人机特化的“背景专家”
+        # ==========================================
+        if self.ignore_bg_expert and self.num_experts > 1:
+            # 切片剔除 Exp0，只约束剩下的目标专家 (Exp1, Exp2, Exp3)
+            P_avg_target = P_avg[1:]
+            f_avg_target = f_avg[1:]
 
-        # 这里的实现技巧：
-        # 我们不使用不可导的 argmax/topk indices 来算 f，
-        # 而是直接使用 router_probs 来计算“软负载”。
-        # 这样整个 Loss 都是平滑可导的，且完全依赖于 router_logits。
+            # 重新归一化 (防除零)
+            target_sum = f_avg_target.sum() + 1e-9
+            f_avg_target = f_avg_target / target_sum
 
-        # 实际负载 f_i (Soft Approximation)
-        f_avg = router_probs.mean(dim=0)
+            num_target_experts = self.num_experts - 1
+            balance_loss = (num_target_experts * (P_avg_target * f_avg_target).sum()) * self.loss_weight
+        else:
+            # 标准全员约束
+            balance_loss = (self.num_experts * (P_avg * f_avg).sum()) * self.loss_weight
 
-        # 4. 计算损失: alpha * N * sum(P_i * f_i)
-        # 使得 P 和 f 都趋向于均匀分布 (1/N)
-        # 注意：这里我们用 P_avg * P_avg 是一种简化的 Auxiliary Loss，
-        # 它鼓励 router_probs 在 batch 上平均分布。
-        loss = (self.num_experts * (P_avg * f_avg).sum()) * self.loss_weight
+        # 最终输出结合了两者的总辅损
+        total_aux_loss = balance_loss + z_loss
 
-        return loss
+        return total_aux_loss

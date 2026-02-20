@@ -45,7 +45,7 @@ class UltraEfficientRouter(nn.Module):
 
         # --- 2. 辅助组件 (来自你的代码) ---
         # 负载均衡损失 (建议权重设为 2.0 或更高，防止坍缩)
-        self.balance_loss_fn = LoadBalancingLoss(num_experts, loss_weight=loss_weight)
+        self.balance_loss_fn = LoadBalancingLoss(num_experts, loss_weight)
 
         # 监测数据 Buffer (不保存到 state_dict，用于训练监控)
         self.register_buffer("selection_states", torch.zeros(num_experts), persistent=False)
@@ -56,13 +56,16 @@ class UltraEfficientRouter(nn.Module):
         # x: [B, C, H, W]
         # 计算原始 Logits: [B, Num_Experts]
         logits = self.router(x)
+        # print(f"👉 [Debug 1] logits 初始版本: {logits._version}")
 
         # ================== 训练阶段 (Training) ==================
-        if self.training:
+        if self.training and torch.is_grad_enabled():
+            safe_logits = logits
             # 1. 注入噪声 (关键：打破对称性，防止死专家)
             # 使用 2.0 的噪声强度（参考你的代码）
-            noise = torch.randn_like(logits) * 1.0
-            noisy_logits = logits + noise
+            # noise = torch.randn_like(safe_logits) * 0.1
+            noisy_logits = safe_logits
+            # print(f"👉 [Debug 2] 加噪声后 logits 版本: {logits._version}")
 
             # 2. 选 Top-K
             # topk_vals: [B, K], topk_indices: [B, K]
@@ -80,12 +83,17 @@ class UltraEfficientRouter(nn.Module):
 
             # 4. 软路由 (Soft Routing) - 保留梯度
             # 注意：要用原始 logits (无噪声) 的对应位置来计算 Softmax，以便梯度回传给 Router
-            raw_topk_logits = torch.gather(logits, 1, topk_indices)
-            selected_weights = F.softmax(raw_topk_logits, dim=1)
+            # raw_topk_logits = torch.gather(logits, 1, topk_indices)
+            # selected_weights = F.softmax(raw_topk_logits, dim=1)
+
+            global_probs = F.softmax(logits, dim=1) # 对 4 个专家算 Softmax
+            selected_weights = torch.gather(global_probs, 1, topk_indices)
 
             # 5. 计算负载均衡损失并收集
             aux_loss = self.balance_loss_fn(logits, topk_indices)
             MoEAuxCollector.add(aux_loss)
+
+            # print(f"👉 [Debug 3] 返回前 logits 版本: {logits._version}, safe_logits 版本: {safe_logits._version}")
 
             return selected_weights, topk_indices, logits
 
