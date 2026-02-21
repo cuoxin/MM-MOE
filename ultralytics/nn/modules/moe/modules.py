@@ -10,58 +10,59 @@ from ..conv import Conv # 引用 YOLO 的基础卷积模块，通常用于 C2f �
 
 class UniversalMoEContainer(nn.Module):
     """
-    通用 MoE 容器：负责管理专家列表和执行稀疏推理 (Sparse Inference)
+    修复版通用MoE容器：
+    1. 专家初始化传入expert_id，实现差异化；
+    2. 强化index_add_鲁棒性，适配Top-K>1；
+    3. 兼容YOLO的2D特征格式（B,C,H,W）。
     """
-    def __init__(self, in_channels, out_channels, num_experts=4, top_k=1):
+    def __init__(self, in_channels, out_channels, num_experts=4, top_k=1, expand_ratio=2):
         super().__init__()
         self.num_experts = num_experts
         self.top_k = top_k
         self.out_channels = out_channels
+        self.expand_ratio = expand_ratio
 
-        # 初始化优化后的 GroupNorm 专家
+        # ✅ 核心修复：初始化专家时传入expert_id，实现差异化
         self.experts = nn.ModuleList([
-            OptimizedSimpleExpert(in_channels, out_channels)
-            for _ in range(num_experts)
+            OptimizedSimpleExpert(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                expert_id=i,  # 每个专家传入专属ID
+                expand_ratio=expand_ratio
+            ) for i in range(num_experts)
         ])
 
     def forward(self, x, weights, indices):
         """
-        核心加速逻辑：使用 index_add_ 避免 Python 循环中的低效 Mask 操作
+        稀疏推理逻辑（优化鲁棒性）：
         x: [B, C, H, W]
         weights: [B, TopK]
         indices: [B, TopK]
         """
         B, C, H, W = x.shape
-        # 初始化输出张量
         expert_output = torch.zeros(B, self.out_channels, H, W, device=x.device, dtype=x.dtype)
 
-        # 展平索引以便处理
-        indices_flat = indices.view(-1) # [B*TopK]
-        weights_flat = weights.view(-1) # [B*TopK]
+        # 展平索引/权重（兼容Top-K>1）
+        indices_flat = indices.view(-1)  # [B*TopK]
+        weights_flat = weights.view(-1)  # [B*TopK]
 
-        # 遍历所有专家
-        for i, expert in enumerate(self.experts):
-            # 1. 找到所有选中当前专家 i 的样本位置 (在 flat 维度上)
-            mask_indices = (indices_flat == i).nonzero(as_tuple=True)[0]
-
-            if mask_indices.numel() == 0:
+        # 遍历每个专家，稀疏聚合输出
+        for expert_id, expert in enumerate(self.experts):
+            # 找到选中当前专家的flat索引
+            mask = (indices_flat == expert_id)
+            if not mask.any():  # 无样本选中当前专家，跳过（更简洁的判断）
                 continue
 
-            # 2. 反算出是哪个 Batch 的数据 (batch_index = flat_index // top_k)
-            # 如果 TopK=1，mask_indices 就是 batch_indices
-            batch_indices = torch.div(mask_indices, self.top_k, rounding_mode='floor')
-
-            # 3. 提取对应的输入数据 [Num_Selected, C, H, W]
+            # 反算batch索引（Top-K>1时正确）
+            batch_indices = torch.div(mask.nonzero(as_tuple=True)[0], self.top_k, rounding_mode='floor')
+            # 提取选中样本的输入
             selected_x = x[batch_indices]
-
-            # 4. 专家前向计算 (GroupNorm 保证了这里即使只有 1 个样本也能稳定计算)
+            # 专家前向（GroupNorm适配小Batch）
             expert_out = expert(selected_x)
-
-            # 5. 加权
-            selected_weights = weights_flat[mask_indices].view(-1, 1, 1, 1)
+            # 加权（权重维度扩展到[Num,1,1,1]，匹配特征）
+            selected_weights = weights_flat[mask].view(-1, 1, 1, 1)
             weighted_out = expert_out * selected_weights
-
-            # 6. 使用 index_add_ 原位聚合，这是 PyTorch 中最快的稀疏聚合方式之一
+            # 原位聚合（PyTorch高效稀疏操作）
             expert_output.index_add_(0, batch_indices, weighted_out)
 
         return expert_output

@@ -25,27 +25,41 @@ class UltraEfficientRouter(nn.Module):
         # 激进的通道压缩，但至少保留 4 个通道
         reduced_channels = max(in_channels // reduction, 4)
 
+        # self.router = nn.Sequential(
+        #     # 深度卷积 (DW-Conv): 获取空间上下文，大幅减少 FLOPs
+        #     nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=2, padding=1, groups=in_channels, bias=False),
+        #     nn.BatchNorm2d(in_channels),
+        #     nn.SiLU(inplace=True),
+
+        #     # 逐点卷积 (PW-Conv): 降维
+        #     nn.Conv2d(in_channels, reduced_channels, kernel_size=1, bias=False),
+        #     nn.SiLU(inplace=True),
+
+        #     # 全局池化 (GAP): 变成向量 [B, C_red, 1, 1]
+        #     nn.AdaptiveAvgPool2d(1),
+        #     nn.Flatten(),
+
+        #     # 最终分类器: [B, Num_Experts]
+        #     nn.Linear(reduced_channels, num_experts)
+        # )
+
         self.router = nn.Sequential(
-            # 深度卷积 (DW-Conv): 获取空间上下文，大幅减少 FLOPs
-            nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=2, padding=1, groups=in_channels, bias=False),
-            nn.BatchNorm2d(in_channels),
-            nn.SiLU(inplace=True),
-
-            # 逐点卷积 (PW-Conv): 降维
-            nn.Conv2d(in_channels, reduced_channels, kernel_size=1, bias=False),
-            nn.SiLU(inplace=True),
-
-            # 全局池化 (GAP): 变成向量 [B, C_red, 1, 1]
+            # 第一步：全局平均池化，将2D特征 [B,C,H,W] → [B,C,1,1]
             nn.AdaptiveAvgPool2d(1),
+            # 第二步：展平，将 [B,C,1,1] → [B,C]
             nn.Flatten(),
-
-            # 最终分类器: [B, Num_Experts]
-            nn.Linear(reduced_channels, num_experts)
+            # 第三步：核心线性门控，输出 [B, num_experts]（经典MMOE门控）
+            nn.Linear(in_channels, num_experts)
         )
 
+        # ✅ 门控初始化更分散，打破初始均匀性（关键解决平均化问题）
+        # 仅初始化router最后一层（线性层）的参数
+        nn.init.normal_(self.router[-1].weight, mean=0, std=0.1)
+        nn.init.zeros_(self.router[-1].bias)
+
         # --- 2. 辅助组件 (来自你的代码) ---
-        # 负载均衡损失 (建议权重设为 2.0 或更高，防止坍缩)
-        self.balance_loss_fn = LoadBalancingLoss(num_experts, loss_weight)
+        # 负载均衡损失
+        self.balance_loss_fn = LoadBalancingLoss(num_experts, top_k, loss_weight)
 
         # 监测数据 Buffer (不保存到 state_dict，用于训练监控)
         self.register_buffer("selection_states", torch.zeros(num_experts), persistent=False)
@@ -63,8 +77,8 @@ class UltraEfficientRouter(nn.Module):
             safe_logits = logits
             # 1. 注入噪声 (关键：打破对称性，防止死专家)
             # 使用 2.0 的噪声强度（参考你的代码）
-            # noise = torch.randn_like(safe_logits) * 0.1
-            noisy_logits = safe_logits
+            noise = torch.randn_like(safe_logits) * 0.2
+            noisy_logits = safe_logits + noise
             # print(f"👉 [Debug 2] 加噪声后 logits 版本: {logits._version}")
 
             # 2. 选 Top-K

@@ -3,68 +3,59 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class LoadBalancingLoss(nn.Module):
-    def __init__(self, num_experts, loss_weight=0.05, z_loss_weight=1e-4, ignore_bg_expert=False):
-        """
-        Args:
-            num_experts: 专家总数
-            loss_weight: 负载均衡主权重 (建议 0.01~0.05，不要太大)
-            z_loss_weight: 稳定 Logits 的 Z-Loss 权重 (默认 1e-3 即可)
-            ignore_bg_expert: 是否开启“特化背景专家”。若为 True，第 0 号专家将不受 25% 均分的惩罚。
-        """
+    def __init__(self, num_experts, top_k=2, loss_weight=0.25,
+                 z_loss_weight=1e-3, ignore_bg_expert=False):
         super().__init__()
-        self.num_experts = num_experts
-        self.loss_weight = 0.001
+        self.num_experts = num_experts  # 正确的属性名
+        self.top_k = top_k
+        self.loss_weight = loss_weight
         self.z_loss_weight = z_loss_weight
         self.ignore_bg_expert = ignore_bg_expert
 
     def forward(self, router_logits, expert_indices):
-        """
-        Args:
-            router_logits: [Batch, Num_Experts] 未经过 Softmax 的原始分数
-            expert_indices: [Batch, TopK] 实际选中的专家索引
-        """
         batch_size = router_logits.size(0)
-        top_k = expert_indices.size(1)
+        # 适配ignore_bg_expert：有效专家数 = 总专家数 - (1 if 忽略背景专家 else 0)
+        K = self.num_experts if not self.ignore_bg_expert else self.num_experts - 1
 
-        # ==========================================
-        # 优化点 2：Router Z-Loss (稳定 Logits 不爆炸)
-        # ==========================================
-        # 计算公式: mean( (log(sum(exp(logits))))^2 )
-        # torch.logsumexp 是极其数值安全的写法
-        z_loss = torch.mean(torch.logsumexp(router_logits, dim=1) ** 2) * self.z_loss_weight
+        # 1. 计算P_avg（路由平均概率，可导）
+        router_probs = F.softmax(router_logits, dim=-1)
+        # 忽略背景专家（如果开启）
+        if self.ignore_bg_expert:
+            router_probs = router_probs[:, :-1]
+        P_avg = router_probs.mean(dim=0)
 
-        # ==========================================
-        # 优化点 1：标准的 Switch Transformer 均衡 Loss
-        # ==========================================
-        # 1. 计算 Router 意图 (Importance, 可导)
-        router_probs = F.softmax(router_logits, dim=1)
-        P_avg = router_probs.mean(dim=0)  # [Num_Experts]
+        # 2. 计算f_avg（真实选中频率，不可导，必须detach）
+        expert_indices_flat = expert_indices.flatten()  # 修正flatten写法（和你的PyTorch版本兼容）
+        # 这里用正确的属性名 self.num_experts
+        route_one_hot = F.one_hot(expert_indices_flat, num_classes=self.num_experts).float()
+        # 忽略背景专家（如果开启）
+        if self.ignore_bg_expert:
+            route_one_hot = route_one_hot[:, :-1]
+        total_selected = route_one_hot.sum(dim=0)
+        total_selection_opportunities = batch_size * self.top_k
+        f_avg = (total_selected / total_selection_opportunities).detach()  # 关键：detach防止梯度回传
 
-        # 2. 统计真实物理负载 (Load, 不可导)
-        # 将 [Batch, TopK] 展开成 one_hot 矩阵统计次数
-        route_one_hot = F.one_hot(expert_indices, num_classes=self.num_experts).float()
-        f_avg = route_one_hot.sum(dim=(0, 1)) / (batch_size * top_k)
-        f_avg = f_avg.detach() # 核心：真实负载是既定事实，不参与算梯度！
+        # 3. 核心修复：负载均衡损失公式（Top-K场景正确写法）
+        sum_Pf = (P_avg * f_avg).sum()
+        balance_loss_raw = (K * sum_Pf - 1).clamp(min=0.0)  # 从1-K*sumPf改为K*sumPf-1
+        balance_loss = balance_loss_raw * self.loss_weight
 
-        # ==========================================
-        # 优化点 3：支持无人机特化的“背景专家”
-        # ==========================================
-        if self.ignore_bg_expert and self.num_experts > 1:
-            # 切片剔除 Exp0，只约束剩下的目标专家 (Exp1, Exp2, Exp3)
-            P_avg_target = P_avg[1:]
-            f_avg_target = f_avg[1:]
+        # 4. Z loss（稳定路由logits）
+        log_sum_exp = torch.logsumexp(router_logits, dim=1)
+        z_loss = torch.mean(log_sum_exp ** 2) * self.z_loss_weight
 
-            # 重新归一化 (防除零)
-            target_sum = f_avg_target.sum() + 1e-9
-            f_avg_target = f_avg_target / target_sum
-
-            num_target_experts = self.num_experts - 1
-            balance_loss = (num_target_experts * (P_avg_target * f_avg_target).sum()) * self.loss_weight
-        else:
-            # 标准全员约束
-            balance_loss = (self.num_experts * (P_avg * f_avg).sum()) * self.loss_weight
-
-        # 最终输出结合了两者的总辅损
+        # 5. 总辅助损失
         total_aux_loss = balance_loss + z_loss
+
+        # 可选：保留日志打印（方便你看修复后的loss值）
+        # if self.training and batch_size > 0:
+        #     print(f"\n===== MoE Loss Fix Verify =====")
+        #     print(f"sum(P_avg*f_avg)    : {sum_Pf.item():.4f}")
+        #     print(f"K * sum(Pf)         : {(K * sum_Pf).item():.4f}")
+        #     print(f"balance_loss_raw    : {balance_loss_raw.item():.4f}")
+        #     print(f"balance_loss (加权后): {balance_loss.item():.6f}")
+        #     print(f"z_loss              : {z_loss.item():.6f}")
+        #     print(f"total_aux_loss     : {total_aux_loss.item():.6f}")
+        #     print("="*40)
 
         return total_aux_loss
