@@ -28,10 +28,10 @@ backbone:
   # - [-1, 1, C2f_DualModal_MoE, [512, 1, False, 1, 0.5, 4, 1]] # 6-P4/16
   - [-1, 1, Conv, [512, 3, 2]] # 7-P4/16
   # - [-1, 2, C3k2, [512, True]]
-  - [-1, 1, C2f_DualModal_MoE, [512, True, 1, 0.5, 4, 1, 2, "8"]] # 8-P5/32
+  - [-1, 1, C2f_DualModal_MoE, [512, True, 1, 0.5, 4, 1, 0.01, "8"]] # 8-P5/32
   - [-1, 1, Conv, [1024, 3, 2]] # 9-P5/32
   # - [-1, 2, C3k2, [1024, True]] # 10
-  - [-1, 1, C2f_DualModal_MoE, [1024, True, 1, 0.5, 4, 1, 2, "10"]] # 10
+  - [-1, 1, C2f_DualModal_MoE, [1024, True, 1, 0.5, 4, 1, 0.01, "10"]] # 10
 
   - [ 0, 1, SilenceChannel, [ 3,6 ] ]  # 11-P1/2
   - [ -1, 1, Conv, [ 64, 3, 2 ] ] # 12-P1/2
@@ -42,10 +42,10 @@ backbone:
   # - [ -1, 1, C2f_DualModal_MoE, [512, 1, False, 1, 0.5, 4, 1 ] ] # 16-P4/16
   - [ -1, 1, Conv, [ 512, 3, 2 ] ] # 17-P4/16
   # - [ -1, 2, C3k2, [ 512, True ] ]
-  - [ -1, 1, C2f_DualModal_MoE, [512, True, 1, 0.5, 4, 1, 2, "17"]] # 18-P5/32
+  - [ -1, 1, C2f_DualModal_MoE, [512, True, 1, 0.5, 4, 1, 0.01, "17"]] # 18-P5/32
   - [ -1, 1, Conv, [ 1024, 3, 2 ] ] # 19-P5/32
   # - [ -1, 2, C3k2, [ 1024, True ] ]  #20
-  - [ -1, 1, C2f_DualModal_MoE, [1024, True, 1, 0.5, 4, 1, 2, "20"]] # 20
+  - [ -1, 1, C2f_DualModal_MoE, [1024, True, 1, 0.5, 4, 1, 0.01, "20"]] # 20
   - [[6, 16], 1, Concat, [1]]  # cat backbone P3   21
   - [[8, 18], 1, Concat, [1]]  # cat backbone P4   22
   - [[10, 20], 1, Concat, [1]]  # cat backbone P5   23

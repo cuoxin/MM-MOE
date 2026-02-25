@@ -2,104 +2,70 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# 确保这三个文件在你对应的目录下，并且能够被正确引用
-from .stats import MoEStatsRecorder
-from .loss import LoadBalancingLoss
-from .collector import MoEAuxCollector
-
 class UltraEfficientRouter(nn.Module):
-    """
-    融合版高效路由器：
-    1. 架构：采用 YOLO-Master 的 Depthwise Separable Conv 减少参数量。
-    2. 策略：
-       - 训练时：注入噪声 + Softmax权重 + 计算负载均衡Loss + 统计专家使用率。
-       - 推理时：无噪声 + 权重置1 (Hard Routing) + 跳过Loss计算 -> 极致速度。
-    """
-    def __init__(self, in_channels, num_experts, top_k=1, reduction=16, loss_weight=2.0, Layer_id='MoE_Router'):
+    # decay_steps 控制噪声退火的时长。
+    # 大约20个epoch
+    def __init__(self, in_channels, num_routed_experts=3, top_k=1, Layer_id='MoE_Router', decay_steps=5640):
         super().__init__()
         self.top_k = top_k
-        self.num_experts = num_experts
+        self.num_routed_experts = num_routed_experts
         self.Layer_id = Layer_id
+        self.decay_steps = decay_steps
 
-        # --- 1. 高效路由核心网络 (YOLO-Master 风格) ---
-        # 激进的通道压缩，但至少保留 4 个通道
-        reduced_channels = max(in_channels // reduction, 4)
-
+        # 极简路由网络
+        reduced_channels = max(in_channels // 16, 4)
         self.router = nn.Sequential(
-            # 深度卷积 (DW-Conv): 获取空间上下文，大幅减少 FLOPs
-            nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=2, padding=1, groups=in_channels, bias=False),
+            nn.Conv2d(in_channels, in_channels, 3, 2, 1, groups=in_channels, bias=False),
             nn.BatchNorm2d(in_channels),
             nn.SiLU(inplace=True),
-
-            # 逐点卷积 (PW-Conv): 降维
-            nn.Conv2d(in_channels, reduced_channels, kernel_size=1, bias=False),
+            nn.Conv2d(in_channels, reduced_channels, 1, bias=False),
             nn.SiLU(inplace=True),
-
-            # 全局池化 (GAP): 变成向量 [B, C_red, 1, 1]
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-
-            # 最终分类器: [B, Num_Experts]
-            nn.Linear(reduced_channels, num_experts)
+            nn.Linear(reduced_channels, num_routed_experts)
         )
 
-        # --- 2. 辅助组件 (来自你的代码) ---
-        # 负载均衡损失 (建议权重设为 2.0 或更高，防止坍缩)
-        self.balance_loss_fn = LoadBalancingLoss(num_experts, loss_weight=loss_weight)
-
-        # 监测数据 Buffer (不保存到 state_dict，用于训练监控)
-        self.register_buffer("selection_states", torch.zeros(num_experts), persistent=False)
-        self.register_buffer("expert_scores_sum", torch.zeros(num_experts), persistent=False)
+        # 监控变量
+        self.register_buffer("selection_states", torch.zeros(num_routed_experts), persistent=False)
+        self.register_buffer("expert_scores_sum", torch.zeros(num_routed_experts), persistent=False)
         self.register_buffer("states_step_count", torch.zeros(1), persistent=False)
 
     def forward(self, x):
-        # x: [B, C, H, W]
-        # 计算原始 Logits: [B, Num_Experts]
         logits = self.router(x)
 
-        # ================== 训练阶段 (Training) ==================
-        if self.training:
-            # 1. 注入噪声 (关键：打破对称性，防止死专家)
-            # 使用 2.0 的噪声强度（参考你的代码）
-            noise = torch.randn_like(logits) * 1.0
-            noisy_logits = logits + noise
+        # ================== 训练阶段 ==================
+        if self.training and torch.is_grad_enabled():
 
-            # 2. 选 Top-K
-            # topk_vals: [B, K], topk_indices: [B, K]
-            topk_vals, topk_indices = torch.topk(noisy_logits, self.top_k, dim=1)
+            # 🌟 创新点 1：线性噪声退火 (前期探索，后期利用)
+            current_step = self.states_step_count.item()
+            noise_scale = max(0.0, 1.0 - (current_step / self.decay_steps))
 
-            # 3. 数据监测 (No Grad)
+            # 将退火噪声加入 Logits 仅用于“决策选谁”
+            noisy_logits = logits + torch.randn_like(logits) * noise_scale
+            _, topk_indices = torch.topk(noisy_logits, self.top_k, dim=1)
+
+            # 获取真实的概率权重用于“梯度回传”（保证梯度高保真）
+            global_probs = F.softmax(logits, dim=1)
+            selected_weights = torch.gather(global_probs, 1, topk_indices)
+
+            # 记录监控状态
             with torch.no_grad():
-                flat_indices = topk_indices.flatten()
-                # 统计每个专家被选中的次数
-                counts = torch.bincount(flat_indices, minlength=self.num_experts)
+                counts = torch.bincount(topk_indices.flatten(), minlength=self.num_routed_experts)
                 self.selection_states += counts
-                # 统计原始分数的均值
                 self.expert_scores_sum += logits.mean(dim=0)
                 self.states_step_count += 1
 
-            # 4. 软路由 (Soft Routing) - 保留梯度
-            # 注意：要用原始 logits (无噪声) 的对应位置来计算 Softmax，以便梯度回传给 Router
-            raw_topk_logits = torch.gather(logits, 1, topk_indices)
-            selected_weights = F.softmax(raw_topk_logits, dim=1)
+            return selected_weights, topk_indices
 
-            # 5. 计算负载均衡损失并收集
-            aux_loss = self.balance_loss_fn(logits, topk_indices)
-            MoEAuxCollector.add(aux_loss)
-
-            return selected_weights, topk_indices, logits
-
-        # ================== 推理阶段 (Inference) ==================
+        # ================== 推理阶段 ==================
         else:
-            # 1. 直接选 Top-K (无噪声)
+            # 零噪声，绝对特征驱动。TopK=1 时满特征传递，速度拉满。
             _, topk_indices = torch.topk(logits, self.top_k, dim=1)
+            if self.top_k == 1:
+                selected_weights = torch.ones_like(topk_indices, dtype=logits.dtype, device=logits.device)
+            else:
+                global_probs = F.softmax(logits, dim=1)
+                selected_probs = torch.gather(global_probs, 1, topk_indices)
+                selected_weights = selected_probs / (selected_probs.sum(dim=1, keepdim=True) + 1e-6)
 
-            # 2. 硬路由 (Hard Routing) - 极致提速
-            # 推理时不需要 Softmax 的计算开销，也不需要加权混合
-            # 直接把权重置为 1.0，完全依赖专家的输出
-            # 形状要匹配 [B, TopK]
-            selected_weights = torch.ones_like(topk_indices, dtype=logits.dtype, device=logits.device)
-
-            # 推理时不计算 Aux Loss
-
-            return selected_weights, topk_indices, logits
+            return selected_weights, topk_indices

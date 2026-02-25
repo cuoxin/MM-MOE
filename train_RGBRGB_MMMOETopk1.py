@@ -1,6 +1,6 @@
 import torch
 # 启用梯度异常检测，会打印详细的错误溯源
-# torch.autograd.set_detect_anomaly(True)
+torch.autograd.set_detect_anomaly(True)
 
 # import warnings
 # warnings.filterwarnings('ignore')
@@ -96,13 +96,18 @@ def on_train_epoch_end(trainer):
         LOGGER.info("No MoE Routers found to monitor.")
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     model = YOLO('/root/autodl-tmp/MM-MOE/runs/myVisDrone/myVisDrone-yolo11n-MMMOE-backboneV1_3-test-e3-topk1-/weights/last.pt')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
+=======
+    model = YOLO('/root/autodl-tmp/MM-MOE/runs/myVisDrone/myVisDrone-yolo11n-MMMOE-backboneV1_11-test-e3-topk1-3/weights/last.pt')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
+>>>>>>> MMOETestV1
 
     model.add_callback('on_train_epoch_end', on_train_epoch_end)
 
     model.train(data=R'/root/autodl-tmp/MM-MOE/ultralytics/cfg/datasets/myVisDrone.yaml',
                 cache=True,
                 imgsz=640,
+<<<<<<< HEAD
                 epochs=450,
                 batch=96,
                 close_mosaic=10,
@@ -111,12 +116,25 @@ if __name__ == '__main__':
                 device='0',
                 optimizer='SGD',  # using SGD
                 resume=True, # last.pt path
+=======
+                epochs=300,
+                batch=64,
+                close_mosaic=10,
+                workers=8,
+                device='0',
+                optimizer='SGD',  # using SGD
+                resume=True,
+>>>>>>> MMOETestV1
                 # amp=False, # close amp
                 # fraction=0.2,
                 use_simotm="RGBRGB6C",
                 channels=6,  #
                 project='runs/myVisDrone',
+<<<<<<< HEAD
                 name='myVisDrone-yolo11n-MMMOE-backboneV1_3-test-e3-topk1-',
+=======
+                name='myVisDrone-yolo11n-MMMOE-backboneV1_11-test-e3-topk1-',
+>>>>>>> MMOETestV1
                 pretrained=False,
                 amp=True,
                 verbose=False
