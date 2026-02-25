@@ -478,16 +478,17 @@ class v8DetectionLoss:
         else:
             loss, batch_size = self.compute_loss(preds, batch)
 
-        moe_aux = MoEAuxCollector.pop_sum(self.device)
-        if moe_aux is None:
-            moe_aux = torch.zeros(1, device=self.device, dtype=loss.dtype)
-        else:
-            moe_aux = moe_aux.to(dtype=loss.dtype).reshape(1)
+        # moe_aux = MoEAuxCollector.pop_sum(self.device)
+        # if moe_aux is None:
+        #     moe_aux = torch.zeros(1, device=self.device, dtype=loss.dtype)
+        # else:
+        #     moe_aux = moe_aux.to(dtype=loss.dtype).reshape(1)
 
-        total = (loss.sum() + moe_aux) * batch_size
-        loss_items = torch.cat([loss.detach(), moe_aux.detach(), total.detach()])
+        # total = (loss.sum() + moe_aux) * batch_size
+        # loss_items = torch.cat([loss.detach(), moe_aux.detach(), total.detach()])
 
-        return total, loss_items
+        # return total, loss_items
+        return loss.sum() * batch_size, loss.detach()
 
     def compute_loss(self, preds, batch):
         """Calculate the sum of the loss for box, cls and dfl multiplied by batch size."""
