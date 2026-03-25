@@ -1,0 +1,77 @@
+# 稳定版本，开始消融实验
+# [通道数, 专家数量, TOPK, 共享专家数量, 直通专家数量, 模拟退火步长, 层数索引]
+# V3.2: 删除共享专家
+
+
+# Parameters
+nc: 1 # number of classes
+scales: # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call yolo11.yaml with scale 'n'
+  # [depth, width, max_channels]
+  n: [0.50, 0.25, 1024] # summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
+  s: [0.50, 0.50, 1024] # summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
+  m: [0.50, 1.00, 512] # summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
+  l: [1.00, 1.00, 512] # summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
+  x: [1.00, 1.50, 512] # summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
+
+ch: 6
+# YOLOv8.0n backbone
+# ================= Backbone =================
+backbone:
+  # 分支 1 (Branch 1)
+  - [-1, 1, Silence, []]           # 0-P1/2
+  - [0, 1, SilenceChannel, [0,3]]  # 1-P1/2
+  - [-1, 1, Conv, [64, 3, 2]]      # 2-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]     # 3-P2/4
+  - [-1, 2, C3k2, [256, False, 0.25]] # 4
+  - [-1, 1, Conv, [256, 3, 2]]     # 5-P3/8
+  - [-1, 2, C3k2, [512, False, 0.25]] # 6 [P3]
+  - [-1, 1, Conv, [512, 3, 2]]     # 7-P4/16
+  - [-1, 1, A2C2f, [512, True, 4]] # 8
+  - [-1, 1, C2f_DualModal_MoE, [512, 4, 1, 0, 1, 1930, "9"]] # 9 [P4]
+  - [-1, 1, Conv, [1024, 3, 2]]    # 10-P5/32
+  - [-1, 1, A2C2f, [1024, True, 1]] # 11
+  - [-1, 1, C2f_DualModal_MoE, [1024, 4, 1, 0, 1, 1930, "12"]] # 12 [P5]
+
+  # 分支 2 (Branch 2)
+  - [0, 1, SilenceChannel, [3,6]]  # 13-P1/2
+  - [-1, 1, Conv, [64, 3, 2]]      # 14-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]     # 15-P2/4
+  - [-1, 2, C3k2, [256, False, 0.25]] # 16
+  - [-1, 1, Conv, [256, 3, 2]]     # 17-P3/8
+  - [-1, 2, C3k2, [512, False, 0.25]] # 18 [P3]
+  - [-1, 1, Conv, [512, 3, 2]]     # 19-P4/16
+  - [-1, 1, A2C2f, [512, True, 4]] # 20
+  - [-1, 1, C2f_DualModal_MoE, [512, 4, 1, 0, 1, 1930, "21"]] # 21 [P4]
+  - [-1, 1, Conv, [1024, 3, 2]]    # 22-P5/32
+  - [-1, 1, A2C2f, [1024, True, 1]] # 23
+  - [-1, 1, C2f_DualModal_MoE, [1024, 4, 1, 0, 1, 1930, "24"]] # 24 [P5]
+
+  # 双流融合与降维 (Cross-channel Fusion)
+  - [[6, 18], 1, Concat, [1]]      # 25
+  - [-1, 1, Conv, [512, 1, 1]]     # 26 [Fused P3] 降维回 512
+
+  - [[9, 21], 1, Concat, [1]]      # 27
+  - [-1, 1, Conv, [512, 1, 1]]     # 28
+
+  - [[12, 24], 1, Concat, [1]]     # 29
+  - [-1, 1, Conv, [1024, 1, 1]]    # 30 [Fused P5] 降维回 1024
+
+# ================= YOLO Head =================
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 31
+  - [[-1, 28], 1, Concat, [1]]     # 32 拼接 Fused P4
+  - [-1, 2, C3k2, [512, False]]    # 33
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 34
+  - [[-1, 26], 1, Concat, [1]]     # 35 拼接 Fused P3
+  - [-1, 2, C3k2, [256, False]]    # 36 [Out P3 Small]
+
+  - [-1, 1, Conv, [256, 3, 2]]     # 37
+  - [[-1, 33], 1, Concat, [1]]     # 38 拼接 Head P4
+  - [-1, 2, C3k2, [512, False]]    # 39 [Out P4 Medium]
+
+  - [-1, 1, Conv, [512, 3, 2]]     # 40
+  - [[-1, 30], 1, Concat, [1]]     # 41 拼接 Fused P5
+  - [-1, 2, C3k2, [1024, True]]    # 42 [Out P5 Large]
+
+  - [[36, 39, 42], 1, Detect, [nc]] # 43 最终检测头

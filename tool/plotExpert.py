@@ -114,10 +114,11 @@ def parse_and_plot_moe_logs(log_file_path, out_img_path, target_layer="8"):
 
 if __name__ == "__main__":
     # 在这里指定你的日志文本文件名
-    LOG_FILE = "/root/autodl-tmp/MM-MOE/runs/myVisDrone/myVisDrone-yolo11n-MMMOE-backboneV1_11-test-e3-topk1-3/moe_states.txt"
+    LOG_FILE = "/root/autodl-tmp/MM-MOE/runs/myDualData/myDualData-yolo11n-MMMOE-backboneV1_20-test-e300-topk1-0117-/moe_states.txt"
     OUT_IMG = '/root/autodl-tmp/MM-MOE/tool/result_temp'
 
     # 在这里修改你想查看的层，比如 "8", "10", "17", 或 "20"
-    TARGET_LAYER = "17"
+    # TARGET_LAYER = "17"
 
-    parse_and_plot_moe_logs(LOG_FILE, OUT_IMG, TARGET_LAYER)
+    for i in list(["9", "12", "21", "24"]):
+        parse_and_plot_moe_logs(LOG_FILE, OUT_IMG, i)

@@ -478,16 +478,25 @@ class v8DetectionLoss:
         else:
             loss, batch_size = self.compute_loss(preds, batch)
 
+        # 2. 收集 MoE 负载均衡损失
         # moe_aux = MoEAuxCollector.pop_sum(self.device)
+
         # if moe_aux is None:
-        #     moe_aux = torch.zeros(1, device=self.device, dtype=loss.dtype)
+        #     moe_aux = torch.tensor(0.0, device=self.device, dtype=loss.dtype)
         # else:
-        #     moe_aux = moe_aux.to(dtype=loss.dtype).reshape(1)
+        #     moe_aux = moe_aux.to(dtype=loss.dtype).squeeze()
 
-        # total = (loss.sum() + moe_aux) * batch_size
-        # loss_items = torch.cat([loss.detach(), moe_aux.detach(), total.detach()])
+        # # print(f"[Debug] Final moe_aux value: {moe_aux.item():.6f}")
+        # # print(f"[Debug] moe_aux requires_grad: {moe_aux.requires_grad}")
+        # # print(f"[Debug] moe_aux grad_fn: {moe_aux.grad_fn}")
 
-        # return total, loss_items
+        # # 3. 计算总 Loss
+        # total_loss = (loss.sum() + moe_aux) * batch_size
+
+
+        # # 4. 返回
+        # return total_loss, loss.detach()
+
         return loss.sum() * batch_size, loss.detach()
 
     def compute_loss(self, preds, batch):

@@ -46,6 +46,7 @@ backbone:
   - [ -1, 1, Conv, [ 1024, 3, 2 ] ] # 19-P5/32
   # - [ -1, 2, C3k2, [ 1024, True ] ]  #20
   - [ -1, 1, C2f_DualModal_MoE, [1024, True, 1, 0.5, 4, 1, "20"]] # 20
+
   - [[6, 16], 1, Concat, [1]]  # cat backbone P3   21
   - [[8, 18], 1, Concat, [1]]  # cat backbone P4   22
   - [[10, 20], 1, Concat, [1]]  # cat backbone P5   23

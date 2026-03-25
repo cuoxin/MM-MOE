@@ -1,11 +1,9 @@
 import torch
-# 启用梯度异常检测，会打印详细的错误溯源
-# torch.autograd.set_detect_anomaly(True)
-
-# import warnings
-# warnings.filterwarnings('ignore')
 from ultralytics import YOLO
 from ultralytics.utils import LOGGER
+
+# 启用梯度异常检测，会打印详细的错误溯源
+torch.autograd.set_detect_anomaly(True)
 
 def on_train_epoch_end(trainer):
     """
@@ -24,17 +22,14 @@ def on_train_epoch_end(trainer):
     # -------------------------------------------------------
     # 2. 准备日志文件路径 (自动跟随 project/name)
     # -------------------------------------------------------
-    # trainer.save_dir 是 pathlib.Path 对象，指向 runs/project/name
     save_dir = trainer.save_dir
     log_file = save_dir / "moe_states.txt"
 
-    # 准备要记录的文本内容
     header_msg = f"\n{'='*20} MoE Expert States (Epoch {trainer.epoch + 1}) {'='*20}\n"
     content_msgs = []
 
     found_router = False
 
-    # 获取模型 (兼容 DDP)
     model = trainer.model
     if hasattr(model, 'module'):
         model = model.module
@@ -48,7 +43,9 @@ def on_train_epoch_end(trainer):
 
             stats = module.selection_states
             total_calls = stats.sum().item()
-            step_count = module.states_step_count.item()
+
+            # 🌟 核心修复：直接读取 Python 整数，不再使用 .item() 阻塞 GPU
+            step_count = getattr(module, 'current_step', 0)
 
             if total_calls > 0 and step_count > 0:
                 # 转成百分比
@@ -62,16 +59,18 @@ def on_train_epoch_end(trainer):
                 msg_line2 = f"       >>> [Avg Score]: {scores_str}"
                 content_msgs.append(msg_line1)
                 content_msgs.append(msg_line2)
-                content_msgs.append("-"*60)
+                content_msgs.append("-" * 60)
             else:
-                content_msgs.append(f"Layer {module.Layer_id}: No data (total_calls=0)")
+                content_msgs.append(f"Layer {module.Layer_id}: No data (total_calls={total_calls}, step={step_count})")
 
             # 🔥 必须清零
-            module.selection_states.zero_()
-            module.expert_scores_sum.zero_()
-            module.states_step_count.zero_()
+            with torch.no_grad():
+                module.selection_states.zero_()
+                module.expert_scores_sum.zero_()
+                # 🌟 核心修复：直接将 Python 变量重置为 0
+                module.current_step = 0
 
-    footer_msg = "="*60 + "\n"
+    footer_msg = "=" * 60 + "\n"
 
     # -------------------------------------------------------
     # 4. 执行打印和保存
@@ -90,35 +89,36 @@ def on_train_epoch_end(trainer):
                 for msg in content_msgs:
                     f.write(msg + "\n")
                 f.write(footer_msg + "\n")
+                f.flush()  # 确保哪怕意外中断也立刻写入硬盘
         except Exception as e:
             LOGGER.warning(f"Failed to write MoE stats to file: {e}")
     else:
         LOGGER.info("No MoE Routers found to monitor.")
 
-if __name__ == '__main__':
-    model = YOLO('/root/autodl-tmp/MM-MOE/ultralytics/cfg/models/11MMMOE/yolo11-RGBT-moe-backboneV1_6.yaml')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
 
+if __name__ == '__main__':
+    model = YOLO('/root/autodl-tmp/MM-MOE/runs/myDualData/myDualData-yolo11n-MMMOE-backboneV2_23-test-e300-topk1-0320-/weights/last.pt')
+
+    # 绑定回调
     model.add_callback('on_train_epoch_end', on_train_epoch_end)
 
-    model.train(data=R'/root/autodl-tmp/MM-MOE/ultralytics/cfg/datasets/myVisDrone.yaml',
-                cache=True,
-                imgsz=640,
-                epochs=400,
-                batch=64,
-                close_mosaic=10,
-                workers=12,
-                # persistent_workers=True,
-                device='0',
-                optimizer='SGD',  # using SGD
-                # resume=True, # last.pt path
-                # amp=False, # close amp
-                # fraction=0.2,
-                use_simotm="RGBRGB6C",
-                channels=6,  #
-                project='runs/myVisDrone',
-                name='myVisDrone-yolo11n-MMMOE-backboneV1_6-test-e3-topk1-',
-                pretrained=False,
-                amp=True,
-                verbose=False,
-                plots=False
-                )
+    # 启动训练
+    model.train(
+        data=r'/root/autodl-tmp/MM-MOE/ultralytics/cfg/datasets/myDualData.yaml',
+        cache=False,
+        imgsz=640,
+        epochs=450,
+        batch=32,
+        close_mosaic=10,
+        workers=8,
+        device='0',
+        optimizer='SGD',
+        resume=True,
+        use_simotm="RGBRGB6C",
+        channels=6,
+        project='runs/myDualData',
+        name='myDualData-yolo11n-MMMOE-backboneV2_23-test-e300-topk1-0320-',
+        pretrained=False,
+        amp=False,
+        verbose=False
+    )

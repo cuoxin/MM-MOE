@@ -1,0 +1,1 @@
+while ps -p 438664 >/dev/null; do sleep 1; done && python ./train_RGBRGB_MMMOETopk1.py

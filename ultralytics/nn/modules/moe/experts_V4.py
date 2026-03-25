@@ -1,8 +1,4 @@
-'''
-这个版本代码会对topk>1的情况进行优化。
-V4版本的代码在topk=1时已经经过了测试验证，可以正常跑通。
-V5版本在V4的基础上增加了对topk>1的支持，并且修复了之前版本中存在的一些逻辑错误和计算错误。
-'''
+'''这个版本的所有代码在topk=1时都经过了测试验证，都可以正常跑通。'''
 
 import torch
 import torch.nn as nn
@@ -83,47 +79,9 @@ class DecoupledMoEContainer(nn.Module):
         for _ in range(self.pass_through_expert_nums, self.num_routed_experts):
             self.routed_experts.append(OptimizedSimpleExpert(in_channels, out_channels))
 
-    # ---------------------------------------------------------
-    # 方法一：极速密集掩码计算 (Dense Mask Computing)
-    # 优势：无内存碎片，无 Gather/Scatter 开销，GPU 满载友好
-    # 劣势：FLOPs 为 O(N)，N 极大时会导致 OOM
-    # ---------------------------------------------------------
-    def forward(self, x, weights, indices):
-        B, _, H, W = x.shape
-
-        if self.shared_expert is not None:
-            shared_out = self.shared_expert(x)
-            routed_out = torch.zeros_like(shared_out)
-        else:
-            shared_out = torch.zeros((B, self.out_channels, H, W), device=x.device, dtype=x.dtype)
-            routed_out = torch.zeros((B, self.out_channels, H, W), device=x.device, dtype=x.dtype)
-
-        for i, expert in enumerate(self.routed_experts):
-            # 1. 找到当前专家 i 在 indices [B, top_k] 中的位置掩码
-            # mask 形状: [B, top_k]
-            mask = (indices == i)
-
-            # 2. 提取当前专家的权重并沿 top_k 维度求和 (处理 top_k>1)
-            # 即使同一个专家意外被选中两次，sum 也能保证数学正确性
-            # expert_weights 形状: [B]
-            expert_weights = (mask.float() * weights).sum(dim=1)
-
-            # 3. 预处理广播维度，转换为 [B, 1, 1, 1]
-            multiplier = expert_weights.view(-1, 1, 1, 1)
-
-            # 4. 硬件执行与原地融合
-            expert_out = expert(x)
-            routed_out.addcmul_(expert_out, multiplier)
-
-        return shared_out + routed_out
-
-    # ---------------------------------------------------------
-    # 方法二：真正的稀疏计算 (True Sparse Indexing)
-    # 优势：FLOPs 严格控制为 O(top_k)，突破显存上限
-    # 劣势：引入索引查找和内存非连续切片，小模型下可能慢于 Dense
-    # ---------------------------------------------------------
+    # 所谓真正的稀疏计算方式，速度会比较慢
     # def forward(self, x, weights, indices):
-    #     B, _, H, W = x.shape
+    #     B, C, H, W = x.shape
 
     #     if self.shared_expert is not None:
     #         shared_out = self.shared_expert(x)
@@ -133,30 +91,60 @@ class DecoupledMoEContainer(nn.Module):
     #         routed_out = torch.zeros((B, self.out_channels, H, W), device=x.device, dtype=x.dtype)
 
     #     for i, expert in enumerate(self.routed_experts):
-    #         # 1. 生成掩码 [B, top_k]
-    #         mask = (indices == i)
-
-    #         # 2. 判断哪些 Batch 样本选中了当前专家 [B]
-    #         batch_mask = mask.any(dim=1)
+    #         batch_mask = (indices == i).any(dim=1)
 
     #         if not batch_mask.any():
-    #             continue # 真正的稀疏：没人选就彻底跳过前向传播！
+    #             continue
 
-    #         # 3. 切片出需要的图像特征
     #         x_selected = x[batch_mask]
+    #         w_selected = weights[batch_mask][indices[batch_mask] == i].view(-1, 1, 1, 1)
 
-    #         # 4. 精准提取对应样本的路由权重，并处理 top_k>1
-    #         # 仅取 batch_mask 为 True 的部分进行 sum 计算
-    #         w_selected = (mask[batch_mask].float() * weights[batch_mask]).sum(dim=1)
-    #         w_selected = w_selected.view(-1, 1, 1, 1)
-
-    #         # 5. 执行稀疏前向传播
     #         expert_out = expert(x_selected)
     #         weighted_out = expert_out * w_selected
 
-    #         # 6. 使用临时 Tensor 进行安全的加法融合，保护计算图
+    #         # 🛡️ 内存修复核心：放弃 routed_out[batch_mask] += weighted_out
+    #         # 改用临时 Tensor 填入数据，然后通过常规的加法融合，完全避开底层的 Scatter 内存碎片！
     #         temp_out = torch.zeros_like(routed_out)
     #         temp_out[batch_mask] = weighted_out
-    #         routed_out = routed_out + temp_out
+    #         routed_out = routed_out + temp_out  # 常规加法，对计算图极其友好
 
     #     return shared_out + routed_out
+
+    # 旧版本计算方式-2026-03-19
+    def forward(self, x, weights, indices):
+
+        self.spatial_indices = indices
+
+        B, _, H, W = x.shape
+
+
+        # 1. 共享分支计算与零张量安全初始化
+        if self.shared_expert is not None:
+            shared_out = self.shared_expert(x)
+            # 根据 shared_out 的正确形状初始化 routed_out
+            routed_out = torch.zeros_like(shared_out)
+        else:
+            # 如果没有共享专家，必须手动创建 out_channels 维度的零张量
+            # 绝对不能用 torch.zeros_like(x)
+            shared_out = torch.zeros((B, self.out_channels, H, W), device=x.device, dtype=x.dtype)
+            routed_out = torch.zeros((B, self.out_channels, H, W), device=x.device, dtype=x.dtype)
+
+        # 2. 预处理广播维度 [B, 1, 1, 1]
+        indices_b = indices.view(-1, 1, 1, 1)
+        weights_b = weights.view(-1, 1, 1, 1)
+
+
+        # 3. 极速密集掩码计算
+        for i, expert in enumerate(self.routed_experts):
+            # 生成当前专家的乘数矩阵 (选中则为概率，未选中则全为 0)
+            multiplier = (indices_b == i).float() * weights_b
+
+            # 硬件执行：所有专家并行运算
+            expert_out = expert(x)
+
+            # 数学执行：原地融合乘加 (Fused Multiply-Add)
+            # 完全杜绝了维度越界，且不会产生额外的显存碎片
+            routed_out.addcmul_(expert_out, multiplier)
+
+        # 4. 完美特征融合 (通用特征 + 特化特征)
+        return shared_out + routed_out
