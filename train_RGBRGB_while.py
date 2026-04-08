@@ -1,4 +1,5 @@
 import torch
+import argparse  # 新增：终端传参库
 # 启用梯度异常检测，会打印详细的错误溯源
 torch.autograd.set_detect_anomaly(True)
 
@@ -97,27 +98,36 @@ def on_train_epoch_end(trainer):
         LOGGER.info("No MoE Routers found to monitor.")
 
 if __name__ == '__main__':
-    model = YOLO('/root/autodl-tmp/MM-MOE/ultralytics/cfg/models/11MMMOE/yolo11-RGBT-moe-backboneV6_10.yaml')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
+    # ===================== 新增：终端参数解析 =====================
+    parser = argparse.ArgumentParser(description="YOLO MoE 训练脚本（支持终端传参）")
+    # 核心参数：模型yaml路径、训练project、训练name
+    parser.add_argument('--model-yaml', type=str, required=True, help="模型配置文件yaml路径")
+    parser.add_argument('--project', type=str, required=True, help="训练结果保存根目录")
+    parser.add_argument('--name', type=str, required=True, help="单次训练任务名称")
+    args = parser.parse_args()
+    # ==========================================================
+
+    # 加载模型：使用终端传入的yaml路径
+    model = YOLO(args.model_yaml)
 
     model.add_callback('on_train_epoch_end', on_train_epoch_end)
 
-    model.train(data=R'/root/autodl-tmp/MM-MOE/ultralytics/cfg/datasets/myDualDataV.yaml',
-                cache=False,
-                imgsz=640,
-                epochs=600,
-                batch=32,
-                close_mosaic=10,
-                workers=8,
-                device='0',
-                optimizer='SGD',  # using SGD
-                # resume=True,
-                # amp=False, # close amp
-                # fraction=0.2,
-                use_simotm="RGBRGB6C",
-                channels=6,  #
-                project='runs/myDualDataV4',
-                name='myDualData-MMMOE-backbone-V6_10',
-                pretrained=False,
-                amp=False,
-                verbose=False
-                )
+    # 训练：project和name使用终端传入的参数
+    model.train(
+        data='/root/autodl-tmp/MM-MOE/ultralytics/cfg/datasets/myDualDataV.yaml',
+        cache=False,
+        imgsz=640,
+        epochs=600,
+        batch=32,
+        close_mosaic=10,
+        workers=8,
+        device='0',
+        optimizer='SGD',
+        use_simotm="RGBRGB6C",
+        channels=6,
+        project=args.project,  # 终端传参
+        name=args.name,       # 终端传参
+        pretrained=False,
+        amp=False,
+        verbose=False
+    )

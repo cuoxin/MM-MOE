@@ -1,0 +1,7 @@
+
+train: /root/autodl-tmp/datasets/myDualDataV4_balanced/images/infrared/train
+val: /root/autodl-tmp/datasets/myDualDataV4_balanced/images/infrared/val
+test: /root/autodl-tmp/datasets/myDualDataV4_balanced/images/infrared/test
+
+nc: 1
+names: ['ship']

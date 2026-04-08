@@ -1,0 +1,11 @@
+python val_all.py \
+  --weights_root /root/autodl-tmp/MM-MOE/runs/myDualDataV4 \
+  --dataset_yaml /root/autodl-tmp/MM-MOE/ultralytics/cfg/datasets/myDualDataV.yaml \
+  --split test \
+  --imgsz 640 \
+  --batch 16 \
+  --use_simotm RGBRGB6C \
+  --channels 6 \
+  --pattern best.pt \
+  --project runs/val/all_data \
+  --name all_weights_test_eval

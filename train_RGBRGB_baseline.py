@@ -3,9 +3,9 @@ warnings.filterwarnings('ignore')
 from ultralytics import YOLO
 
 if __name__ == '__main__':
-    model = YOLO('/root/autodl-tmp/MM-MOE/ultralytics/cfg/models/12-RGBT/yolo12-RGBT-midfusion.yaml')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
+    model = YOLO('/root/autodl-tmp/MM-MOE/ultralytics/cfg/models/12-RGBT/yolo12-RGBT-midfusion-P3.yaml')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
     # model.load(r'yolo11n-RGBRGB6C-midfussion.pt') # loading pretrain weights 网盘下载
-    model.train(data=R'/root/autodl-tmp/MM-MOE/ultralytics/cfg/datasets/myDualData.yaml',
+    model.train(data=R'/root/autodl-tmp/MM-MOE/ultralytics/cfg/datasets/myDualDataV.yaml',
                 cache=False,
                 imgsz=640,
                 epochs=300,
@@ -19,7 +19,7 @@ if __name__ == '__main__':
                 # fraction=0.2,
                 use_simotm="RGBRGB6C",
                 channels=6,  #
-                project='runs/myDualData',
-                name='myDualData-yolo11n-baseline-test-0313',
+                project='runs/YOLOv12',
+                name='myDualData_RGBRGB_midfusion_P3',
                 # val=True,
                 )

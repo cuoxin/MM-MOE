@@ -1,0 +1,66 @@
+# 稳定版本，开始消融实验
+# [通道数, 专家数量, TOPK, 共享专家数量, 直通专家数量, 模拟退火步长, 层数索引]
+# V5.0: 将模块放到颈部，看看是否能提升性能
+
+
+# Parameters
+nc: 1 # number of classes
+scales: # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call yolo11.yaml with scale 'n'
+  # [depth, width, max_channels]
+  n: [0.50, 0.25, 1024] # summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
+  s: [0.50, 0.50, 1024] # summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
+  m: [0.50, 1.00, 512] # summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
+  l: [1.00, 1.00, 512] # summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
+  x: [1.00, 1.50, 512] # summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
+
+ch: 6
+# YOLOv8.0n backbone
+# YOLO Dual-Modal MoE Architecture (Neck MoE + A2C2f Fusion)
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Silence, []]  # 0-P1/2
+  - [0, 1, SilenceChannel, [0,3]]
+  - [-1, 1, Conv, [64, 3, 2]]
+  - [-1, 1, Conv, [128, 3, 2]]
+  - [-1, 2, C3k2, [256, False, 0.25]]
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [-1, 2, C3k2, [512, False, 0.25]] # 6
+
+  - [0, 1, SilenceChannel, [3,6]]
+  - [-1, 1, Conv, [64, 3, 2]]
+  - [-1, 1, Conv, [128, 3, 2]]
+  - [-1, 2, C3k2, [256, False, 0.25]]
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [-1, 2, C3k2, [512, False, 0.25]] # 12
+
+  - [[6, 12], 1, Concat, [1]]  # 13: cat backbone P3
+  - [-1, 1, Conv, [512, 3, 2]] # 14-P4/16
+  - [-1, 4, A2C2f, [512, True, 4]] # 15: P4 输出
+  - [-1, 1, Conv, [1024, 3, 2]] # 16-P5/32
+  - [-1, 4, A2C2f, [1024, True, 1]] # 17: P5 输出
+
+head:
+  # ⬇️ Top-Down 路径 (自顶向下)
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 18
+  - [[-1, 15], 1, Concat, [1]] # 19: Concat P4
+  - [-1, 1, A2C2f, [512, False, 1]] # 20: 🎯 轻量级融合！把 1024 压回 512
+  - [-1, 1, C2f_DualModal_MoE, [512, 4, 1, 1, 1, 520, "Neck_TD_P4"]] # 21: 🚀 融合后的特化
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 22
+  - [[-1, 13], 1, Concat, [1]] # 23: Concat P3
+  - [-1, 1, A2C2f, [256, False, 1]] # 24: 🎯 轻量级融合！把 512 压回 256
+  - [-1, 1, C2f_DualModal_MoE, [256, 4, 1, 1, 1, 520, "Neck_TD_P3"]] # 25: 🚀 融合后的特化
+
+  # ⬆️ Bottom-Up 路径 (自底向上)
+  - [-1, 1, Conv, [256, 3, 2]] # 26: 降采样 P3
+  - [[-1, 21], 1, Concat, [1]] # 27: Concat Top-Down P4 (注意索引是 21，承接上面的 MoE 输出)
+  - [-1, 1, A2C2f, [512, False, 1]] # 28: 🎯 轻量级融合！
+  - [-1, 1, C2f_DualModal_MoE, [512, 4, 1, 1, 1, 520, "Neck_BU_P4"]] # 29: 🚀 融合后的特化
+
+  - [-1, 1, Conv, [512, 3, 2]] # 30: 降采样 P4
+  - [[-1, 17], 1, Concat, [1]] # 31: Concat Backbone P5
+  - [-1, 1, C3k2, [1024, True]] # 32: 🎯 P5 层的融合 (保留了你原来的 C3k2)
+  - [-1, 1, C2f_DualModal_MoE, [1024, 4, 1, 1, 1, 520, "Neck_BU_P5"]] # 33: 🚀 融合后的特化
+
+  # --- 检测头 ---
+  - [[25, 29, 33], 1, Detect, [nc]] # 34: Detect(P3, P4, P5)

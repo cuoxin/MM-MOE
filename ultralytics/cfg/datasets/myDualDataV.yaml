@@ -1,0 +1,7 @@
+
+train: /root/autodl-tmp/datasets/myDualDataV4_balanced/images/visible/train
+val: /root/autodl-tmp/datasets/myDualDataV4_balanced/images/visible/val
+test: /root/autodl-tmp/datasets/myDualDataV4_balanced/images/visible/test
+
+nc: 1
+names: ['ship']

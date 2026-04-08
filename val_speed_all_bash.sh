@@ -1,0 +1,11 @@
+python val_speed_all.py \
+  --weights_root /root/autodl-tmp/MM-MOE/runs/myDualDataV4 \
+  --mode best \
+  --imgsz 640 \
+  --channels 6 \
+  --batch 1 \
+  --warmup 100 \
+  --testtime 1000 \
+  --device 0 \
+  --out_dir runs/val/myDualDataV4_speed_batch \
+  --out_name all_weights_speed_2

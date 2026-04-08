@@ -5,7 +5,7 @@
 # Task docs: https://docs.ultralytics.com/tasks/detect
 
 # Parameters
-nc: 80 # number of classes
+nc: 1 # number of classes
 scales: # model compound scaling constants, i.e. 'model=yolo12n.yaml' will call yolo12.yaml with scale 'n'
   # [depth, width, max_channels]
   n: [0.50, 0.25, 1024] # summary: 272 layers, 2,602,288 parameters, 2,602,272 gradients, 6.7 GFLOPs
@@ -14,13 +14,13 @@ scales: # model compound scaling constants, i.e. 'model=yolo12n.yaml' will call 
   l: [1.00, 1.00, 512] # summary: 488 layers, 26,450,784 parameters, 26,450,768 gradients, 89.7 GFLOPs
   x: [1.00, 1.50, 512] # summary: 488 layers, 59,210,784 parameters, 59,210,768 gradients, 200.3 GFLOPs
 
-ch: 4
+ch: 6
 
 # YOLO12n backbone
 backbone:
   # [from, repeats, module, args]
   - [-1, 1, Silence, []]  # 0-P1/2
-  - [0, 1, SilenceChannel, [0,4]]  # 0-P1/2
+  - [0, 1, SilenceChannel, [0,6]]  # 0-P1/2
   - [-1, 1, Conv, [64, 3, 2]] # 2-P1/2
   - [-1, 1, Conv, [128, 3, 2]] # 3-P2/4
   - [-1, 2, C3k2, [256, False, 0.25]]
