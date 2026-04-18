@@ -9,12 +9,14 @@ class UltraEfficientRouter(nn.Module):
     """
     放弃空间特征，直接提取全局上下文，速度达到物理极限。
     """
-    def __init__(self, in_channels, num_routed_experts=3, top_k=1, pass_through_expert_nums=1, loss_weight=0.005, Layer_id='MoE_Router', decay_steps=772, reduction=8):
+    def __init__(self, in_channels, num_routed_experts=3, top_k=1, pass_through_expert_nums=1, loss_weight=0.005, noise_multiplier=0.1, Layer_id='MoE_Router', decay_steps=772, reduction=8, routing_weight_mode='consistent'):
         super().__init__()
         self.top_k = top_k
         self.num_routed_experts = num_routed_experts
         self.Layer_id = Layer_id
         self.decay_steps = decay_steps
+        self.routing_weight_mode = routing_weight_mode
+        self.noise_multiplier = noise_multiplier
 
         # 直接全局池化，干掉空间维度计算
         self.global_pool = nn.AdaptiveAvgPool2d(1)
@@ -38,6 +40,8 @@ class UltraEfficientRouter(nn.Module):
         self.register_buffer("selection_states", torch.zeros(num_routed_experts), persistent=False)
         self.register_buffer("expert_scores_sum", torch.zeros(num_routed_experts), persistent=False)
         self.register_buffer("states_step_count", torch.zeros(1), persistent=False)
+        # 仅用于按 epoch 打印统计，避免影响退火步数 states_step_count。
+        self.register_buffer("epoch_states_step_count", torch.zeros(1), persistent=False)
 
     def forward(self, x):
         B = x.shape[0]
@@ -46,16 +50,42 @@ class UltraEfficientRouter(nn.Module):
         logits = out.view(B, self.num_routed_experts) # [B, E]
         return self._process_logits(logits)
 
+    def _compute_selected_weights_legacy(self, logits, topk_indices, is_training):
+        """保留你原本的权重计算逻辑。"""
+        if is_training:
+            global_probs = F.softmax(logits, dim=1)
+            return torch.gather(global_probs, 1, topk_indices)
+
+        if self.top_k == 1:
+            return torch.ones_like(topk_indices, dtype=logits.dtype)
+
+        global_probs = F.softmax(logits, dim=1)
+        selected_probs = torch.gather(global_probs, 1, topk_indices)
+        return selected_probs / (selected_probs.sum(dim=1, keepdim=True) + 1e-6)
+
+    def _compute_selected_weights_consistent(self, logits, topk_indices):
+        """训练/推理一致策略：Top-1 前向恒为 1，Top-K>1 归一化。"""
+        global_probs = F.softmax(logits, dim=1)
+        selected_probs = torch.gather(global_probs, 1, topk_indices)
+
+        if self.top_k == 1:
+            # STE: 前向与推理一致(=1)，梯度仍回传到 selected_probs
+            return selected_probs + (1.0 - selected_probs).detach()
+
+        return selected_probs / (selected_probs.sum(dim=1, keepdim=True) + 1e-6)
+
     def _process_logits(self, logits):
         if self.training and torch.is_grad_enabled():
             current_step = self.states_step_count.item()
-            noise_scale = max(0.0, 2.0 * (1.0 - (current_step / self.decay_steps)))
+            noise_scale = max(0.0, self.noise_multiplier * (1.0 - (current_step / self.decay_steps)))
 
             noisy_logits = logits + torch.randn_like(logits) * noise_scale
             _, topk_indices = torch.topk(noisy_logits, self.top_k, dim=1)
 
-            global_probs = F.softmax(logits, dim=1)
-            selected_weights = torch.gather(global_probs, 1, topk_indices)
+            if self.routing_weight_mode == 'consistent':
+                selected_weights = self._compute_selected_weights_consistent(logits, topk_indices)
+            else:
+                selected_weights = self._compute_selected_weights_legacy(logits, topk_indices, is_training=True)
 
 
             aux_loss = self.bal_loss_fn(logits, topk_indices)
@@ -64,16 +94,17 @@ class UltraEfficientRouter(nn.Module):
                 self.selection_states += torch.bincount(topk_indices.flatten(), minlength=self.num_routed_experts)
                 self.expert_scores_sum += logits.mean(dim=0)
                 self.states_step_count += 1
+                self.epoch_states_step_count += 1
             return selected_weights, topk_indices
         else:
             if self.top_k == 1:
                 topk_indices = torch.argmax(logits, dim=1, keepdim=True)
-                selected_weights = torch.ones_like(topk_indices, dtype=logits.dtype)
             else:
                 _, topk_indices = torch.topk(logits, self.top_k, dim=1)
-                global_probs = F.softmax(logits, dim=1)
-                selected_probs = torch.gather(global_probs, 1, topk_indices)
-                selected_weights = selected_probs / (selected_probs.sum(dim=1, keepdim=True) + 1e-6)
+            if self.routing_weight_mode == 'consistent':
+                selected_weights = self._compute_selected_weights_consistent(logits, topk_indices)
+            else:
+                selected_weights = self._compute_selected_weights_legacy(logits, topk_indices, is_training=False)
             return selected_weights, topk_indices
 
 

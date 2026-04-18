@@ -1,111 +1,212 @@
+import argparse
+import csv
+from pathlib import Path
+
 import matplotlib.pyplot as plt
-import numpy as np
 
-# ==========================================
-# 1. 核心数据配置 (请填入你真实的实验数据)
-# ==========================================
-# 数据格式: { "模型名称": (推理延迟ms, mAP50-95, 参数量M) }
-# 注意：参数量(M)用于控制气泡的大小，差异越大视觉效果越好
-model_data = {
-    "Baseline (YOLOv11)": (4.6, 0.705, 3.2),
-    "V16 (Dual-Stream)":  (5.2, 0.720, 6.1), # 双流网络通常精度高但变慢、变大
-    "V17 (Standard MoE)": (4.8, 0.723, 7.5), # 标准MoE参数激增，速度略微下降
-    "V19 (Neck Fusion)":  (4.2, 0.731, 6.8), # 优化后速度提升，精度提升
-    "V20 (Ours)":         (3.7, 0.742, 6.8)  # 终极形态：加入直通专家，参数不变，速度起飞，精度最高
-}
 
-# 颜色配置 (突出 Ours)
-colors = {
-    "Baseline (YOLOv11)": "#7f7f7f",  # 灰色
-    "V16 (Dual-Stream)":  "#1f77b4",  # 蓝色
-    "V17 (Standard MoE)": "#2ca02c",  # 绿色
-    "V19 (Neck Fusion)":  "#ff7f0e",  # 橙色
-    "V20 (Ours)":         "#d62728"   # 红色 (视觉中心)
-}
+def simplify_name(name: str) -> str:
+	s = str(name or "").strip()
+	if s.startswith("MMOEV"):
+		return s.replace("MMOEV", "V")
+	if s.lower().startswith("baseline"):
+		s = s.replace("baseline", "BL").replace("Baseline", "BL")
+		return s.replace("_", "-")
+	s = s.replace("_", "-")
+	return s[:16] if len(s) > 16 else s
 
-# ==========================================
-# 2. 数据解析与帕累托前沿计算
-# ==========================================
-names = list(model_data.keys())
-latencies = np.array([model_data[name][0] for name in names])
-maps = np.array([model_data[name][1] * 100 for name in names]) # 转换为百分比 %
-params = np.array([model_data[name][2] for name in names])
 
-# 气泡大小缩放系数 (根据你的参数量大小微调这个乘数)
-bubble_sizes = params * 100
+def pareto_mask_maximize(x, y):
+	n = len(x)
+	mask = [True] * n
+	for i in range(n):
+		for j in range(n):
+			if i == j:
+				continue
+			dominates = (x[j] >= x[i] and y[j] >= y[i]) and (x[j] > x[i] or y[j] > y[i])
+			if dominates:
+				mask[i] = False
+				break
+	return mask
 
-# 计算帕累托前沿 (Latency 越小越好，mAP 越大越好)
-# 1. 按 Latency 从小到大排序
-sorted_indices = np.argsort(latencies)
-sorted_latencies = latencies[sorted_indices]
-sorted_maps = maps[sorted_indices]
 
-pareto_latencies = []
-pareto_maps = []
-current_max_map = -1.0
+def to_float(v):
+	try:
+		return float(v)
+	except Exception:
+		return None
 
-# 2. 只有当 mAP 比之前所有更快模型都要高时，才属于帕累托前沿
-for lat, m in zip(sorted_latencies, sorted_maps):
-    if m > current_max_map:
-        pareto_latencies.append(lat)
-        pareto_maps.append(m)
-        current_max_map = m
 
-# ==========================================
-# 3. 开始绘图
-# ==========================================
-# 设置全局字体和画板样式
-plt.rcParams['font.family'] = 'serif'
-fig, ax = plt.subplots(figsize=(10, 7), dpi=300)
+def load_metrics_csv(metrics_csv: Path):
+	needed = [
+		"exp_name",
+		"test_map50_B",
+		"test_map50_95_B",
+		"val_map50_B",
+		"val_map50_95_B",
+	]
 
-# 绘制帕累托前沿线 (虚线)
-ax.plot(pareto_latencies, pareto_maps, linestyle='--', color='gray', linewidth=2, alpha=0.6, zorder=1, label='Pareto Frontier')
+	rows = []
+	with open(metrics_csv, "r", encoding="utf-8-sig", newline="") as f:
+		reader = csv.DictReader(f)
+		if reader.fieldnames is None:
+			raise ValueError("Metrics CSV has no header")
+		for c in needed:
+			if c not in reader.fieldnames:
+				raise ValueError(f"Missing column in metrics CSV: {c}")
 
-# 绘制气泡散点
-for i, name in enumerate(names):
-    # Ours 模型加粗，边框特殊处理
-    is_ours = "Ours" in name
-    edge_color = 'black' if is_ours else 'white'
-    linewidth = 2.5 if is_ours else 1.0
-    alpha_val = 0.9 if is_ours else 0.75
+		for r in reader:
+			exp_name = (r.get("exp_name", "") or "").strip()
+			if not exp_name:
+				continue
+			one = {"exp_name": exp_name}
+			for c in needed[1:]:
+				one[c] = to_float(r.get(c, ""))
+			rows.append(one)
+	return rows
 
-    scatter = ax.scatter(latencies[i], maps[i], s=bubble_sizes[i], c=colors[name],
-                         alpha=alpha_val, edgecolors=edge_color, linewidth=linewidth, zorder=2)
 
-    # 添加文本标签 (Ours 放上面，其他的微调位置避免遮挡)
-    text_y_offset = 0.3 if is_ours else -0.5
-    font_weight = 'bold' if is_ours else 'normal'
-    font_size = 13 if is_ours else 11
+def load_speed_csv(speed_csv: Path):
+	rows = []
+	with open(speed_csv, "r", encoding="utf-8-sig", newline="") as f:
+		reader = csv.DictReader(f)
+		if reader.fieldnames is None:
+			raise ValueError("Speed CSV has no header")
 
-    ax.text(latencies[i], maps[i] + text_y_offset, name,
-            fontsize=font_size, fontweight=font_weight, ha='center', va='bottom', zorder=3)
+		fps_col = None
+		for c in ["fps", "speed_fps"]:
+			if c in reader.fieldnames:
+				fps_col = c
+				break
+		if fps_col is None:
+			raise ValueError("Missing fps column in speed CSV (expect 'fps' or 'speed_fps')")
+		if "exp_name" not in reader.fieldnames:
+			raise ValueError("Missing column in speed CSV: exp_name")
 
-# ==========================================
-# 4. 图表美化与细节调整
-# ==========================================
-ax.set_title("Performance vs. Latency Trade-off", fontsize=16, fontweight='bold', pad=15)
-ax.set_xlabel("Inference Latency (ms) $\leftarrow$ Faster", fontsize=14)
-ax.set_ylabel("mAP@50-95 (%)", fontsize=14)
+		for r in reader:
+			exp_name = (r.get("exp_name", "") or "").strip()
+			if not exp_name:
+				continue
+			rows.append({"exp_name": exp_name, "speed_fps": to_float(r.get(fps_col, ""))})
+	return rows
 
-# 添加网格线
-ax.grid(True, linestyle=':', alpha=0.7, zorder=0)
 
-# 添加图例说明 (气泡大小含义)
-# 制造几个假的散点只为了画图例
-scatter_legend = [ax.scatter([], [], s=size*100, c='gray', alpha=0.5, edgecolors='white') for size in [3, 5, 7]]
-legend1 = ax.legend(scatter_legend, ['3M', '5M', '7M'], title="Params", loc='lower right', frameon=True, fontsize=11)
-ax.add_artist(legend1) # 保持气泡图例
+def prepare_data(metrics_csv: Path, speed_csv: Path):
+	metrics_rows = load_metrics_csv(metrics_csv)
+	speed_rows = load_speed_csv(speed_csv)
 
-# 添加帕累托前沿图例
-handles, labels = ax.get_legend_handles_labels()
-ax.legend(handles, labels, loc='upper left', fontsize=12)
+	fps_by_name = {}
+	for r in speed_rows:
+		if r["speed_fps"] is not None:
+			fps_by_name[r["exp_name"]] = r["speed_fps"]
 
-# 优化坐标轴边距
-plt.margins(x=0.15, y=0.15)
+	rows = []
+	for m in metrics_rows:
+		exp_name = m["exp_name"]
+		if exp_name not in fps_by_name:
+			continue
+		one = dict(m)
+		one["speed_fps"] = fps_by_name[exp_name]
+		one["short_name"] = simplify_name(exp_name)
+		rows.append(one)
 
-# 保存与展示
-save_path = "pareto_frontier_bubble.png"
-plt.tight_layout()
-plt.savefig(save_path, bbox_inches='tight')
-print(f"✅ 帕累托气泡图已保存至: {save_path}")
-plt.show()
+	print(f"[INFO] metrics rows={len(metrics_rows)}, speed rows={len(speed_rows)}, merged rows={len(rows)}")
+	return rows
+
+
+def plot_one(df, metric_col: str, metric_label: str, out_file: Path):
+	sub = [r for r in df if r.get(metric_col) is not None and r.get("speed_fps") is not None]
+	if len(sub) == 0:
+		print(f"[WARN] Skip {metric_col}: no valid rows")
+		return
+
+	x = [r["speed_fps"] for r in sub]
+	y = [r[metric_col] for r in sub]
+	mask = pareto_mask_maximize(x, y)
+	pareto = [sub[i] for i, keep in enumerate(mask) if keep]
+	pareto = sorted(pareto, key=lambda r: (r["speed_fps"], r[metric_col]))
+
+	plt.figure(figsize=(10, 7), dpi=150)
+	plt.scatter(
+		[r["speed_fps"] for r in sub],
+		[r[metric_col] for r in sub],
+		s=36,
+		alpha=0.55,
+		label="All models",
+	)
+	plt.scatter(
+		[r["speed_fps"] for r in pareto],
+		[r[metric_col] for r in pareto],
+		s=58,
+		alpha=0.95,
+		marker="D",
+		label="Pareto frontier",
+	)
+
+	if len(pareto) >= 2:
+		plt.plot([r["speed_fps"] for r in pareto], [r[metric_col] for r in pareto], linewidth=1.8)
+
+	for r in pareto:
+		plt.annotate(
+			r["short_name"],
+			(r["speed_fps"], r[metric_col]),
+			textcoords="offset points",
+			xytext=(4, 4),
+			fontsize=8,
+		)
+
+	plt.xlabel("FPS")
+	plt.ylabel(metric_label)
+	plt.title(f"Pareto Frontier: {metric_label} vs FPS")
+	plt.grid(alpha=0.25)
+	plt.legend()
+	plt.tight_layout()
+	plt.savefig(out_file)
+	plt.close()
+	print(f"[OK] Saved: {out_file}")
+
+
+def main():
+	parser = argparse.ArgumentParser("Plot Pareto frontiers from metrics CSV + speed CSV")
+	parser.add_argument(
+		"--metrics_csv",
+		type=str,
+		default="/root/autodl-tmp/MM-MOE/runs/val/final_test/all_weights_joint_eval/all_joint_results.csv",
+		help="Path to metrics CSV (all_joint_results.csv)",
+	)
+	parser.add_argument(
+		"--speed_csv",
+		type=str,
+		default="/root/autodl-tmp/MM-MOE/runs/val/final_test/all_weights_speed/all_speed_results.csv",
+		help="Path to speed CSV (all_speed_results.csv)",
+	)
+	parser.add_argument(
+		"--out_dir",
+		type=str,
+		default="",
+		help="Output directory for plots (default: <metrics_csv_dir>/pareto_plots)",
+	)
+	args = parser.parse_args()
+
+	metrics_csv_path = Path(args.metrics_csv)
+	speed_csv_path = Path(args.speed_csv)
+	if not metrics_csv_path.exists():
+		raise FileNotFoundError(f"Metrics CSV not found: {metrics_csv_path}")
+	if not speed_csv_path.exists():
+		raise FileNotFoundError(f"Speed CSV not found: {speed_csv_path}")
+
+	out_dir = Path(args.out_dir) if args.out_dir else (metrics_csv_path.parent / "pareto_plots")
+	out_dir.mkdir(parents=True, exist_ok=True)
+
+	df = prepare_data(metrics_csv_path, speed_csv_path)
+
+	plot_one(df, "test_map50_B", "test mAP50", out_dir / "pareto_test_map50_vs_fps.png")
+	plot_one(df, "test_map50_95_B", "test mAP50-95", out_dir / "pareto_test_map50_95_vs_fps.png")
+	plot_one(df, "val_map50_B", "val mAP50", out_dir / "pareto_val_map50_vs_fps.png")
+	plot_one(df, "val_map50_95_B", "val mAP50-95", out_dir / "pareto_val_map50_95_vs_fps.png")
+
+	print("[DONE] Generated 4 Pareto plots.")
+
+
+if __name__ == "__main__":
+	main()

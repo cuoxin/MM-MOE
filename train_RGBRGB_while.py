@@ -49,7 +49,11 @@ def on_train_epoch_end(trainer):
 
             stats = module.selection_states
             total_calls = stats.sum().item()
-            step_count = module.states_step_count.item()
+            # 仅使用 epoch 统计计数，避免干扰 Router 的退火计数 states_step_count。
+            if hasattr(module, 'epoch_states_step_count'):
+                step_count = module.epoch_states_step_count.item()
+            else:
+                step_count = module.states_step_count.item()
 
             if total_calls > 0 and step_count > 0:
                 # 转成百分比
@@ -71,7 +75,8 @@ def on_train_epoch_end(trainer):
             with torch.no_grad():
                 module.selection_states.zero_()
                 module.expert_scores_sum.zero_()
-                module.states_step_count.zero_()
+                if hasattr(module, 'epoch_states_step_count'):
+                    module.epoch_states_step_count.zero_()
 
     footer_msg = "="*60 + "\n"
 

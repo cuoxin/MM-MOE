@@ -48,7 +48,10 @@ def on_train_epoch_end(trainer):
 
             stats = module.selection_states
             total_calls = stats.sum().item()
-            step_count = module.states_step_count.item()
+            if hasattr(module, 'epoch_states_step_count'):
+                step_count = module.epoch_states_step_count.item()
+            else:
+                step_count = module.states_step_count.item()
 
             if total_calls > 0 and step_count > 0:
                 # 转成百分比
@@ -70,7 +73,8 @@ def on_train_epoch_end(trainer):
             with torch.no_grad():
                 module.selection_states.zero_()
                 module.expert_scores_sum.zero_()
-                module.states_step_count.zero_()
+                if hasattr(module, 'epoch_states_step_count'):
+                    module.epoch_states_step_count.zero_()
 
     footer_msg = "="*60 + "\n"
 
@@ -97,7 +101,7 @@ def on_train_epoch_end(trainer):
         LOGGER.info("No MoE Routers found to monitor.")
 
 if __name__ == '__main__':
-    model = YOLO('/root/autodl-tmp/MM-MOE/ultralytics/cfg/models/11MMMOE/yolo11-RGBT-moe-backboneV6_10.yaml')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
+    model = YOLO('/root/autodl-tmp/MM-MOE/ultralytics/cfg/models/12MMOE/MMOEV1_13.yaml')  # 只是将yaml里面的 ch设置成 6 ,红外部分改为 SilenceChannel, [ 3,6 ] 即可
 
     model.add_callback('on_train_epoch_end', on_train_epoch_end)
 
@@ -115,8 +119,8 @@ if __name__ == '__main__':
                 # fraction=0.2,
                 use_simotm="RGBRGB6C",
                 channels=6,  #
-                project='runs/myDualDataV4',
-                name='myDualData-MMMOE-backbone-V6_10',
+                project='runs/final_MMMOE',
+                name='MMMOEV1_13',
                 pretrained=False,
                 amp=False,
                 verbose=False

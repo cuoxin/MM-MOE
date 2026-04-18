@@ -6,7 +6,7 @@ from ..conv import Conv
 
 
 class C2f_DualModal_MoE(nn.Module):
-    def __init__(self, c1, c2, n=1, num_experts=4, top_k=1, shared_experts_nums=1, pass_through_expert_nums=1, decay_steps=1000, Layer_id=None):
+    def __init__(self, c1, c2, n=1, num_experts=4, top_k=1, shared_experts_nums=1, pass_through_expert_nums=1, decay_steps=1000, loss_weight=0.01, noise_multiplier=0.1, Layer_id=None):
         super().__init__()
 
         # print(f"\n{'='*50}")
@@ -27,9 +27,11 @@ class C2f_DualModal_MoE(nn.Module):
                                             num_routed_experts=num_experts,
                                             top_k=top_k,
                                             pass_through_expert_nums=pass_through_expert_nums,
-                                            loss_weight=0.005,
+                                            loss_weight=loss_weight,
                                             decay_steps=decay_steps,
-                                            Layer_id="{}_{}".format(Layer_id, "Router")
+                                            noise_multiplier=noise_multiplier,
+                                            Layer_id="{}_{}".format(Layer_id, "Router"),
+                                            routing_weight_mode='consistent'
                                             )
         self.experts = DecoupledMoEContainer(self.input_channels,
                                             self.output_channels,

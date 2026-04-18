@@ -1,11 +1,14 @@
 python val_speed_all.py \
-  --weights_root /root/autodl-tmp/MM-MOE/runs/myDualDataV4 \
+  --weights_root /root/autodl-tmp/MM-MOE/runs/final_MMMOE \
   --mode best \
   --imgsz 640 \
   --channels 6 \
   --batch 1 \
-  --warmup 100 \
-  --testtime 1000 \
+  --warmup 200 \
+  --testtime 500 \
+  --repeats 5 \
+  --seed 42 \
+  --deterministic \
   --device 0 \
-  --out_dir runs/val/myDualDataV4_speed_batch \
-  --out_name all_weights_speed_2
+  --out_dir /root/autodl-tmp/MM-MOE/runs/val/final_test \
+  --out_name all_weights_speed

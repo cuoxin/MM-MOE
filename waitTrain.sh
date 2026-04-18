@@ -1,1 +1,1 @@
-while ps -p 14308 >/dev/null; do sleep 1; done && python ./train_RGBRGB_baseline.py
+while ps -p 432539 >/dev/null; do sleep 1; done && bash /root/autodl-tmp/MM-MOE/train_while.sh

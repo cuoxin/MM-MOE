@@ -96,7 +96,7 @@ if __name__ == '__main__':
     # ===============================================
     # 插入标准测速模块
     # ===============================================
-    MODEL_WEIGHTS = r'/root/autodl-tmp/MM-MOE/runs/myDualData/myDualData-yolo11n-MMMOE-backboneV2_22-test-e300-topk1-0119-13/weights/best.pt'
+    MODEL_WEIGHTS = r'/root/autodl-tmp/MM-MOE/runs/YOLOv12/myDualData_RGBRGB_midfusion_P3/weights/best.pt'
 
     # 执行测速，注意通道数设为 6 (对应你的 RGBRGB6C)
     measure_standard_speed(

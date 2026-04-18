@@ -438,6 +438,11 @@ class v8DetectionLoss:
         self.bbox_loss = BboxLoss(m.reg_max).to(device)
         self.proj = torch.arange(m.reg_max, dtype=torch.float, device=device)
 
+        # Track real MoE router count so we only consume current-step aux losses.
+        self.num_moe_layers = sum(
+            1 for module in self.model.modules() if hasattr(module, "bal_loss_fn")
+        )
+
         # ATSS use
         self.grid_cell_offset = 0.5
         self.fpn_strides = list(self.stride.detach().cpu().numpy())
@@ -479,25 +484,29 @@ class v8DetectionLoss:
             loss, batch_size = self.compute_loss(preds, batch)
 
         # 2. 收集 MoE 负载均衡损失
-        # moe_aux = MoEAuxCollector.pop_sum(self.device)
+        moe_aux = (
+            MoEAuxCollector.pop_sum(self.device, num_moe_layers=self.num_moe_layers)
+            if self.num_moe_layers > 0
+            else None
+        )
 
-        # if moe_aux is None:
-        #     moe_aux = torch.tensor(0.0, device=self.device, dtype=loss.dtype)
-        # else:
-        #     moe_aux = moe_aux.to(dtype=loss.dtype).squeeze()
+        if moe_aux is None:
+            moe_aux = torch.tensor(0.0, device=self.device, dtype=loss.dtype)
+        else:
+            moe_aux = moe_aux.to(dtype=loss.dtype).squeeze()
 
-        # # print(f"[Debug] Final moe_aux value: {moe_aux.item():.6f}")
-        # # print(f"[Debug] moe_aux requires_grad: {moe_aux.requires_grad}")
-        # # print(f"[Debug] moe_aux grad_fn: {moe_aux.grad_fn}")
+        # print(f"[Debug] Final moe_aux value: {moe_aux.item():.6f}")
+        # print(f"[Debug] moe_aux requires_grad: {moe_aux.requires_grad}")
+        # print(f"[Debug] moe_aux grad_fn: {moe_aux.grad_fn}")
 
-        # # 3. 计算总 Loss
-        # total_loss = (loss.sum() + moe_aux) * batch_size
+        # 3. 计算总 Loss
+        total_loss = (loss.sum() + moe_aux) * batch_size
 
 
-        # # 4. 返回
-        # return total_loss, loss.detach()
+        # 4. 返回
+        return total_loss, loss.detach()
 
-        return loss.sum() * batch_size, loss.detach()
+        # return loss.sum() * batch_size, loss.detach()
 
     def compute_loss(self, preds, batch):
         """Calculate the sum of the loss for box, cls and dfl multiplied by batch size."""

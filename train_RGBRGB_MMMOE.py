@@ -44,8 +44,10 @@ def on_train_epoch_end(trainer):
             stats = module.selection_states
             total_calls = stats.sum().item()
 
-            # 🌟 核心修复：直接读取 Python 整数，不再使用 .item() 阻塞 GPU
-            step_count = getattr(module, 'current_step', 0)
+            if hasattr(module, 'epoch_states_step_count'):
+                step_count = module.epoch_states_step_count.item()
+            else:
+                step_count = module.states_step_count.item() if hasattr(module, 'states_step_count') else 0
 
             if total_calls > 0 and step_count > 0:
                 # 转成百分比
@@ -67,8 +69,8 @@ def on_train_epoch_end(trainer):
             with torch.no_grad():
                 module.selection_states.zero_()
                 module.expert_scores_sum.zero_()
-                # 🌟 核心修复：直接将 Python 变量重置为 0
-                module.current_step = 0
+                if hasattr(module, 'epoch_states_step_count'):
+                    module.epoch_states_step_count.zero_()
 
     footer_msg = "=" * 60 + "\n"
 
