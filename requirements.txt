@@ -15,7 +15,7 @@ thop
 # numpy==1.24
 
 # Util ------------------------------------------- Attention mechanism related  注意力机制相关
-einops>=0.7
+einops>=0.8.2
 timm>=0.9
 efficientnet-pytorch>=0.7.1
 
